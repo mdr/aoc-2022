@@ -23,23 +23,29 @@ example = """
 10000
 """
 
-getLineGroups : String -> List (List String)
-getLineGroups = forget . split (== "") . forget . split (== '\n') . trim
-
-groupsToIntegers : List (List String) -> Maybe (List (List Integer))
-groupsToIntegers = traverse (traverse parseInteger)
-
 maxList : Ord ty => List ty -> Maybe ty
 maxList = map (foldr1 max) . List1.fromList
 
-solve' : List (List Integer) -> Maybe Integer
-solve' elfInventories = maxList (map sum elfInventories)
+getLineGroups : String -> List (List String)
+getLineGroups = forget . split (== "") . forget . split (== '\n') . trim
+
+ElfInventory : Type
+ElfInventory = List Integer
+
+parseInventories : String -> Maybe (List ElfInventory)
+parseInventories = traverse (traverse parseInteger) . getLineGroups
+
+solve' : List ElfInventory -> Maybe Integer
+solve' = maxList . map sum
 
 solve : String -> Maybe Integer
-solve = (>>= solve') . groupsToIntegers . getLineGroups
+solve = (>>= solve') . parseInventories
+
+solve2' : List ElfInventory -> Integer
+solve2' = sum . take 3 . reverse . sort . map sum
 
 solve2 : String -> Maybe Integer
-solve2 = map (sum . take 3 . reverse . sort . map sum) . groupsToIntegers . getLineGroups
+solve2 = map solve2' . parseInventories
 
 main : IO ()
 main = do
