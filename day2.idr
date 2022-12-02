@@ -104,9 +104,9 @@ solve2 = map solve2' . traverse parseRoundStrategy . lines
 
 main : IO ()
 main = do
-  Right contents <- readFile "day2.txt" | Left error => putStrLn ("Error reading file: " ++ show error)
-  Just answer1 <- pure (solve contents) | Nothing => putStrLn "Error solving puzzle 1"
+  Right contents <- readFile "day2.txt" | Left error => die ("Error reading file: " ++ show error)
+  let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: " ++ show answer1)
-  Just answer2 <- pure (solve2 contents) | Nothing => putStrLn "Error solving puzzle 2"
+  let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
   putStrLn ("Part 2: " ++ show answer2)
 
