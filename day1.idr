@@ -5,6 +5,7 @@ import Data.List1
 import Data.String
 import System
 import System.File
+import Utils
 
 example = """
 1000
@@ -22,12 +23,6 @@ example = """
 
 10000
 """
-
-maxList : Ord ty => List ty -> Maybe ty
-maxList = map (foldr1 max) . List1.fromList
-
-getLineGroups : String -> List (List String)
-getLineGroups = forget . split (== "") . forget . split (== '\n') . trim
 
 ElfInventory : Type
 ElfInventory = List Integer
