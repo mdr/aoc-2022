@@ -30,7 +30,7 @@ Round : Type
 Round = (Shape, Shape)
 
 parseRound : String -> Maybe Round
-parseRound s = case forget (split (== ' ') s) of
+parseRound s = case words s of
   [shape1, shape2] => MkPair <$> parseShape shape1 <*> parseShape shape2
   _ => Nothing
 
@@ -80,7 +80,7 @@ Strategy : Type
 Strategy = (Shape, Outcome)
 
 parseStrategy : String -> Maybe Strategy
-parseStrategy s = case forget (split (== ' ') s) of
+parseStrategy s = case words s of
   [shape, outcome] => MkPair <$> parseShape shape <*> parseOutcome outcome
   _ => Nothing
 
@@ -116,9 +116,8 @@ solve2 = map solve2' . traverse parseStrategy . lines
 
 main : IO ()
 main = do
-  Right contents <- readFile "day2.txt" | Left error => die ("Error reading file: " ++ show error)
+  Right contents <- readFile "day2.txt" | Left error => die ("Error reading file: \{show error}")
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
-  putStrLn ("Part 1: " ++ show answer1)
+  putStrLn ("Part 1: \{show answer1}")
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  putStrLn ("Part 2: " ++ show answer2)
-
+  putStrLn ("Part 2: \{show answer2}")
