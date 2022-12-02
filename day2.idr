@@ -13,51 +13,54 @@ B X
 C Z
 """
 
-data HandShape = Rock | Paper | Scissors
+-- Part 1
 
-parseHandShape : String -> Maybe HandShape
-parseHandShape "A" = Just Rock
-parseHandShape "B" = Just Paper
-parseHandShape "C" = Just Scissors
-parseHandShape "X" = Just Rock
-parseHandShape "Y" = Just Paper
-parseHandShape "Z" = Just Scissors
-parseHandShape _ = Nothing
+data Shape = Rock | Paper | Scissors
+
+parseShape : String -> Maybe Shape
+parseShape "A" = Just Rock
+parseShape "B" = Just Paper
+parseShape "C" = Just Scissors
+parseShape "X" = Just Rock
+parseShape "Y" = Just Paper
+parseShape "Z" = Just Scissors
+parseShape _ = Nothing
 
 Round : Type
-Round = (HandShape, HandShape)
+Round = (Shape, Shape)
 
 parseRound : String -> Maybe Round
 parseRound s = case forget (split (== ' ') s) of
-  [a, b] => liftM2 MkPair (parseHandShape a) (parseHandShape b)
+  [shape1, shape2] => MkPair <$> parseShape shape1 <*> parseShape shape2
   _ => Nothing
 
 parseRounds : String -> Maybe (List Round)
 parseRounds = traverse parseRound . lines
 
-data RoundOutcome = Win | Draw | Loss
+data Outcome = Win | Draw | Loss
 
-roundOutcome : Round -> RoundOutcome
-roundOutcome (Rock, Paper) = Win
-roundOutcome (Rock, Scissors) = Loss
-roundOutcome (Paper, Rock) = Loss
-roundOutcome (Paper, Scissors) = Win
-roundOutcome (Scissors, Rock) = Win
-roundOutcome (Scissors, Paper) = Loss
-roundOutcome _ = Draw
+roundOutcome : (opponentShape, ourShape : Shape) -> Outcome
+roundOutcome Rock Paper = Win
+roundOutcome Rock Scissors = Loss
+roundOutcome Paper Rock = Loss
+roundOutcome Paper Scissors = Win
+roundOutcome Scissors Rock = Win
+roundOutcome Scissors Paper = Loss
+roundOutcome _ _ = Draw
 
-scoreOutcome : RoundOutcome -> Integer
+scoreOutcome : Outcome -> Integer
 scoreOutcome Win = 6
 scoreOutcome Draw = 3
 scoreOutcome Loss = 0
 
-scoreShape : HandShape -> Integer
+scoreShape : Shape -> Integer
 scoreShape Rock = 1
 scoreShape Paper = 2
 scoreShape Scissors = 3
 
 scoreRound : Round -> Integer
-scoreRound (a, b) = scoreShape b + scoreOutcome (roundOutcome (a, b))
+scoreRound (opponentShape, ourShape) = 
+  scoreShape ourShape + scoreOutcome (roundOutcome opponentShape ourShape)
 
 solve' : List Round -> Integer
 solve' = sum . map scoreRound
@@ -67,38 +70,47 @@ solve = map solve' . parseRounds
 
 -- Part 2
 
-parseOutcome : String -> Maybe RoundOutcome
+parseOutcome : String -> Maybe Outcome
 parseOutcome "X" = Just Loss
 parseOutcome "Y" = Just Draw
 parseOutcome "Z" = Just Win
 parseOutcome _ = Nothing
 
-RoundStrategy : Type
-RoundStrategy = (HandShape, RoundOutcome)
+Strategy : Type
+Strategy = (Shape, Outcome)
 
-parseRoundStrategy : String -> Maybe RoundStrategy
-parseRoundStrategy s = case forget (split (== ' ') s) of
-  [a, b] => liftM2 MkPair (parseHandShape a) (parseOutcome b)
+parseStrategy : String -> Maybe Strategy
+parseStrategy s = case forget (split (== ' ') s) of
+  [shape, outcome] => MkPair <$> parseShape shape <*> parseOutcome outcome
   _ => Nothing
 
-chooseShape : RoundStrategy -> HandShape
-chooseShape (shape, Draw) = shape
-chooseShape (Rock, Win) = Paper
-chooseShape (Rock, Loss) = Scissors
-chooseShape (Paper, Win) = Scissors
-chooseShape (Paper, Loss) = Rock
-chooseShape (Scissors, Win) = Rock
-chooseShape (Scissors, Loss) = Paper
+sameShapeIsADraw : {shape : _} -> roundOutcome shape shape = Draw
+sameShapeIsADraw {shape} = 
+  case shape of
+    Rock => Refl
+    Paper => Refl
+    Scissors => Refl
 
-scoreRoundStrategy : RoundStrategy -> Integer
-scoreRoundStrategy strategy@(shape, outcome) = 
-  scoreShape (chooseShape strategy) + scoreOutcome outcome
+chooseShape : (opponentShape : Shape) -> (desiredOutcome : Outcome) -> 
+  (ourShape : Shape ** roundOutcome opponentShape ourShape = desiredOutcome)
+chooseShape shape Draw = (shape ** sameShapeIsADraw)
+chooseShape Rock Win = (Paper ** Refl)
+chooseShape Rock Loss = (Scissors ** Refl)
+chooseShape Paper Win = (Scissors ** Refl)
+chooseShape Paper Loss = (Rock ** Refl)
+chooseShape Scissors Win = (Rock ** Refl)
+chooseShape Scissors Loss = (Paper ** Refl)
 
-solve2' : List RoundStrategy -> Integer
-solve2' = sum . map scoreRoundStrategy
+scoreStrategy : Strategy -> Integer
+scoreStrategy (opponentShape, desiredOutcome) = 
+  let (ourShape ** _) = chooseShape opponentShape desiredOutcome in
+  scoreShape ourShape + scoreOutcome desiredOutcome
+
+solve2' : List Strategy -> Integer
+solve2' = sum . map scoreStrategy
 
 solve2 : String -> Maybe Integer
-solve2 = map solve2' . traverse parseRoundStrategy . lines
+solve2 = map solve2' . traverse parseStrategy . lines
 
 -- Driver
 
