@@ -2,18 +2,25 @@ module Utils
 
 import Data.List1
 import Data.String
+import Data.Vect
 
-infixl 9 |>
+infixl 4 |>
 
 export
 (|>) : a -> (a -> b) -> b
 a |> f = f a
 
-export -- total
+export -- not total
 chunksOf : Nat -> List a -> List (List a)
 chunksOf n xs = case splitAt n xs of
   (ys, []) => [ys]
   (ys, zs) => ys :: chunksOf n zs
+
+-- simpler total chunking as suggested by ohad in Idris discord:
+export total
+chunksOf3 : List a -> List (Vect 3 a)
+chunksOf3 (a :: b :: c :: rest) = [a, b, c] :: chunksOf3 rest
+chunksOf3 _ = []
 
 export 
 sumBy : Num b => (a -> b) -> List a -> b
