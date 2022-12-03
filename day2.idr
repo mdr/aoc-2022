@@ -31,7 +31,7 @@ Round = (Shape, Shape)
 
 parseRound : String -> Maybe Round
 parseRound s = case words s of
-  [shape1, shape2] => MkPair <$> parseShape shape1 <*> parseShape shape2
+  [shape1, shape2] => (,) <$> parseShape shape1 <*> parseShape shape2
   _ => Nothing
 
 parseRounds : String -> Maybe (List Round)
@@ -81,7 +81,7 @@ Strategy = (Shape, Outcome)
 
 parseStrategy : String -> Maybe Strategy
 parseStrategy s = case words s of
-  [shape, outcome] => MkPair <$> parseShape shape <*> parseOutcome outcome
+  [shape, outcome] => (,) <$> parseShape shape <*> parseOutcome outcome
   _ => Nothing
 
 sameShapeIsADraw : {shape : _} -> roundOutcome shape shape = Draw
