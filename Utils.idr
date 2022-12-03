@@ -3,6 +3,9 @@ module Utils
 import Data.List1
 import Data.String
 
+export sumBy : Num b => (a -> b) -> List a -> b
+sumBy f = foldl (\x => \y => x + f y) 0
+
 export maxList : Ord ty => List ty -> Maybe ty
 maxList = map (foldr1 max) . List1.fromList
 
