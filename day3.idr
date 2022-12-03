@@ -21,8 +21,11 @@ CrZsJsPPZsGzwwsLwLmpwMDw
 
 -- Part 1
 
+Item : Type
+Item = Char
+
 Compartment : Type
-Compartment = List Char
+Compartment = List Item
 
 Rucksack : Type
 Rucksack = (Compartment, Compartment)
@@ -30,40 +33,50 @@ Rucksack = (Compartment, Compartment)
 parseRucksack : String -> Rucksack
 parseRucksack s = 
   let middle = divNatNZ (length s) 2 SIsNonZero in
-  splitAt middle (unpack s)
+      splitAt middle (unpack s)
 
-priority : Char -> Integer
+priority : Item -> Integer
 priority item with (isLower item)
   priority item | True = cast $ ord item - ord 'a' + 1
   priority item | False = cast $ ord item - ord 'A' + 27
-
+      
 solveRucksack : Rucksack -> Integer
 solveRucksack (compartment1, compartment2) = 
-  let overlap = SortedSet.toList (fromList compartment1 `intersection` fromList compartment2) in
+  let
+    set1 = SortedSet.fromList compartment1
+    set2 = SortedSet.fromList compartment2
+    overlap = intersection set1 set2    
+  in
     sumBy priority overlap
 
 solve' : List Rucksack -> Integer
 solve' = sumBy solveRucksack
 
+parseRucksacks : String -> List Rucksack
+parseRucksacks = map parseRucksack . lines
+
 solve : String -> Integer
-solve = solve' . map parseRucksack . lines 
+solve = solve' . parseRucksacks
 
 -- Part 2
 
 Rucksack' : Type
-Rucksack' = List Char
+Rucksack' = List Item
 
-Group : Type
-Group = Vect 3 Rucksack'
+ElfGroup : Type
+ElfGroup = Vect 3 Rucksack'
 
-solveGroup : Group -> Integer
-solveGroup = sumBy priority . SortedSet.toList . foldl1 intersection . map SortedSet.fromList
+getBadgePriority : ElfGroup -> Integer
+getBadgePriority = sumBy priority . SortedSet.toList . foldl1 intersection . map SortedSet.fromList
 
-solve2' : List Group -> Integer
-solve2' = sumBy solveGroup
+solve2' : List ElfGroup -> Integer
+solve2' = sumBy getBadgePriority
+
+parseElfGroups : String -> List ElfGroup
+parseElfGroups = chunksOf3 . map unpack . lines
 
 solve2 : String -> Integer
-solve2 = solve2' . chunksOf3 . map unpack . lines
+solve2 = solve2' . parseElfGroups
 
 -- Driver
 

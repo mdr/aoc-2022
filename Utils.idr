@@ -23,7 +23,7 @@ chunksOf3 (a :: b :: c :: rest) = [a, b, c] :: chunksOf3 rest
 chunksOf3 _ = []
 
 export 
-sumBy : Num b => (a -> b) -> List a -> b
+sumBy : Num b => Foldable t => (a -> b) -> t a -> b
 sumBy f = foldl (\x, y => x + f y) 0
 
 export 
