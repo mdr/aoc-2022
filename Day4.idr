@@ -37,8 +37,8 @@ parseSectionAssignment s = do
   let [s1, s2] = forget $ split (== '-') s | _ => Nothing
   id1 <- parsePositive s1
   id2 <- parsePositive s2
-  let Yes idValidRange = isLTE id1 id2 | No _ => Nothing
-  Just (MkSectionAssignment id1 id2 idValidRange)
+  let Yes isValidRange = isLTE id1 id2 | No _ => Nothing
+  Just (MkSectionAssignment id1 id2 isValidRange)
 
 parseSectionAssignmentPair : String -> Maybe SectionAssignmentPair
 parseSectionAssignmentPair s = do
@@ -73,7 +73,8 @@ exampleWorks = Refl
 -- Part 2
 
 disjoint : SectionAssignment -> SectionAssignment -> Bool
-disjoint assignment1 assignment2 = assignment1.id2 < assignment2.id1 || assignment1.id1 > assignment2.id2
+disjoint assignment1 assignment2 = 
+  assignment1.id2 < assignment2.id1 || assignment1.id1 > assignment2.id2
 
 overlap : SectionAssignment -> SectionAssignment -> Bool
 overlap = (not .) . disjoint
