@@ -2,6 +2,7 @@ module Learning
 
 import Utils
 import Data.Vect
+import Decidable.Equality
 
 AdderType : (numargs : Nat) -> Type -> Type
 AdderType Z numType = numType
@@ -90,3 +91,30 @@ checkEqNat (S k) (S l) =
   case checkEqNat k l of
     Yes Refl => Yes Refl
     No contra => No (noRec contra)
+
+data Elem : a -> Vect k a -> Type where
+  Here : Elem x (x :: xs)
+  There : (later : Elem x xs) -> Elem x (y :: xs)
+
+total
+Uninhabited (Elem a []) where
+  uninhabited Here impossible
+  uninhabited (There _) impossible
+
+removeElem : {n : _} -> (value : a) -> (xs : Vect (S n) a) -> {auto prf : Elem value xs} -> Vect n a
+removeElem value (value :: xs) {prf = Here} = xs
+removeElem {n = Z} value [x] {prf = There later} = absurd later
+removeElem {n = S k} value (x :: xs) {prf = There later} = x :: removeElem value xs
+
+notInTail : (notHere: Not (value = x)) -> (notThere : Not (Elem value xs)) -> Not (Elem value (x :: xs))
+notInTail notHere notThere Here = notHere Refl
+notInTail notHere notThere (There later) = notThere later
+
+isElem : DecEq ty => (value : ty) -> (xs : Vect n ty) -> Dec (Elem value xs)
+isElem value [] = No uninhabited
+isElem value (x :: xs) =
+  case decEq value x of
+    Yes Refl => Yes Here
+    No notHere => case isElem value xs of
+      Yes later => Yes (There later)
+      No notThere => No (notInTail notHere notThere)
