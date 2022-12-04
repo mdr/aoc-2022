@@ -24,8 +24,10 @@ example = """
 SectionId : Type
 SectionId = Nat
 
-SectionAssignment : Type
-SectionAssignment = (SectionId, SectionId)
+record SectionAssignment where
+  constructor MkSectionAssignment
+  id1, id2 : SectionId
+  isValidRange : LTE id1 id2
 
 SectionAssignmentPair : Type
 SectionAssignmentPair = (SectionAssignment, SectionAssignment)
@@ -35,7 +37,8 @@ parseSectionAssignment s = do
   let [s1, s2] = forget $ split (== '-') s | _ => Nothing
   id1 <- parsePositive s1
   id2 <- parsePositive s2
-  Just (id1, id2)
+  let Yes idValidRange = isLTE id1 id2 | No _ => Nothing
+  Just (MkSectionAssignment id1 id2 idValidRange)
 
 parseSectionAssignmentPair : String -> Maybe SectionAssignmentPair
 parseSectionAssignmentPair s = do
@@ -47,8 +50,12 @@ parseSectionAssignmentPair s = do
 parseSectionAssignments : String -> Maybe (List SectionAssignmentPair)
 parseSectionAssignments = traverse parseSectionAssignmentPair . lines
 
+containsId : SectionAssignment -> SectionId -> Bool
+containsId assignment id = assignment.id1 <= id && id <= assignment.id2
+
 fullyContains : SectionAssignment -> SectionAssignment -> Bool
-fullyContains (a, b) (c, d) = a <= c && b >= d
+fullyContains assignment1 assignment2 = 
+  (assignment1 `containsId` assignment2.id1) && (assignment1 `containsId` assignment2.id2)
 
 needsReconsideration : SectionAssignment -> SectionAssignment -> Bool
 needsReconsideration assignment1 assignment2 =
@@ -65,8 +72,11 @@ exampleWorks = Refl
 
 -- Part 2
 
+disjoint : SectionAssignment -> SectionAssignment -> Bool
+disjoint assignment1 assignment2 = assignment1.id2 < assignment2.id1 || assignment1.id1 > assignment2.id2
+
 overlap : SectionAssignment -> SectionAssignment -> Bool
-overlap (a, b) (c, d) = a <= c && c <= b || c <= a && a <= d
+overlap = (not .) . disjoint
 
 solve2' : List SectionAssignmentPair -> Nat
 solve2' = count (uncurry overlap)
