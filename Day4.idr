@@ -26,23 +26,23 @@ SectionId = Nat
 
 record SectionAssignment where
   constructor MkSectionAssignment
-  id1, id2 : SectionId
-  isValidRange : LTE id1 id2
+  from, to : SectionId
+  isValidRange : LTE from to
 
 SectionAssignmentPair : Type
 SectionAssignmentPair = (SectionAssignment, SectionAssignment)
 
 parseSectionAssignment : String -> Maybe SectionAssignment
 parseSectionAssignment s = do
-  let [s1, s2] = forget $ split (== '-') s | _ => Nothing
-  id1 <- parsePositive s1
-  id2 <- parsePositive s2
-  let Yes isValidRange = isLTE id1 id2 | No _ => Nothing
-  Just (MkSectionAssignment id1 id2 isValidRange)
+  let [s1, s2] = splitString '-' s | _ => Nothing
+  from <- parsePositive s1
+  to <- parsePositive s2
+  let Yes isValidRange = isLTE from to | No _ => Nothing
+  Just (MkSectionAssignment from to isValidRange)
 
 parseSectionAssignmentPair : String -> Maybe SectionAssignmentPair
 parseSectionAssignmentPair s = do
-  let [s1, s2] = forget $ split (== ',') s | _ => Nothing
+  let [s1, s2] = splitString ',' s | _ => Nothing
   assignment1 <- parseSectionAssignment s1
   assignment2 <- parseSectionAssignment s2
   Just (assignment1, assignment2)
@@ -51,15 +51,15 @@ parseSectionAssignments : String -> Maybe (List SectionAssignmentPair)
 parseSectionAssignments = traverse parseSectionAssignmentPair . lines
 
 containsId : SectionAssignment -> SectionId -> Bool
-containsId assignment id = assignment.id1 <= id && id <= assignment.id2
+containsId assignment id = assignment.from <= id && id <= assignment.to
 
 fullyContains : SectionAssignment -> SectionAssignment -> Bool
 fullyContains assignment1 assignment2 = 
-  (assignment1 `containsId` assignment2.id1) && (assignment1 `containsId` assignment2.id2)
+  (assignment1 `containsId` assignment2.from) && (assignment1 `containsId` assignment2.to)
 
 needsReconsideration : SectionAssignment -> SectionAssignment -> Bool
 needsReconsideration assignment1 assignment2 =
-  fullyContains assignment1 assignment2 || fullyContains assignment2 assignment1
+  (assignment1 `fullyContains` assignment2) || (assignment2 `fullyContains` assignment1)
 
 solve' : List SectionAssignmentPair -> Nat
 solve' = count (uncurry needsReconsideration)
@@ -74,7 +74,7 @@ exampleWorks = Refl
 
 disjoint : SectionAssignment -> SectionAssignment -> Bool
 disjoint assignment1 assignment2 = 
-  assignment1.id2 < assignment2.id1 || assignment1.id1 > assignment2.id2
+  assignment1.to < assignment2.from || assignment1.from > assignment2.to
 
 overlap : SectionAssignment -> SectionAssignment -> Bool
 overlap = (not .) . disjoint

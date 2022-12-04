@@ -40,3 +40,7 @@ liftM2 f m1 m2 = do
   x1 <- m1
   x2 <- m2
   pure (f x1 x2)
+
+public export
+splitString : Char -> String -> List String
+splitString c s = forget $ split (== c) s
