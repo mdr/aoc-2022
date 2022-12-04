@@ -1,5 +1,8 @@
 module Learning
 
+import Utils
+import Data.Vect
+
 AdderType : (numargs : Nat) -> Type -> Type
 AdderType Z numType = numType
 AdderType (S k) numType = (next : numType) -> AdderType k numType
@@ -34,3 +37,56 @@ toFormat (c :: chars) =
 
 printf : (fmt : String) -> PrintfType (toFormat (unpack fmt))
 printf fmt = printfFmt (toFormat (unpack fmt)) ""
+
+checkEqNat' : (n : Nat) -> (m : Nat) -> Maybe (n = m)
+checkEqNat' Z Z = Just Refl
+checkEqNat' (S n) (S m) = checkEqNat' n m |> map (cong S)
+checkEqNat' _ _ = Nothing
+
+myReverseSlow : Vect n a -> Vect n a
+myReverseSlow {n = Z} [] = []
+myReverseSlow {n = S k} (x :: xs) = 
+  let result = myReverseSlow xs ++ [x] in 
+    rewrite plusCommutative 1 k in result
+
+append : Vect n a -> Vect m a -> Vect (m + n) a
+append [] ys = rewrite plusZeroRightNeutral m in ys
+append {n = S k} {m} (x :: xs) ys =
+  let result = x :: append xs ys in 
+    rewrite sym $ plusSuccRightSucc m k in result
+
+myPlusCommutes : (n : Nat) -> (m : Nat) -> n + m = m + n
+myPlusCommutes Z m = sym $ plusZeroRightNeutral m
+myPlusCommutes (S n) m = 
+  rewrite sym $ plusSuccRightSucc m n in 
+    cong S (myPlusCommutes n m)
+
+myReverse : Vect n a -> Vect n a
+myReverse xs = reverse' [] xs
+  where
+    reverse' : Vect p a -> Vect q a -> Vect (p + q) a
+    reverse' acc [] = rewrite plusZeroRightNeutral p in acc
+    reverse' {p} {q = S k} acc (x :: xs) = 
+      rewrite sym $ plusSuccRightSucc p k in 
+        (reverse' (x :: acc) xs)
+
+twoPlusTwoNotFive : 2 + 2 = 5 -> Void
+twoPlusTwoNotFive Refl impossible        
+
+zeroNotSucc : Not (0 = S k)
+zeroNotSucc Refl impossible
+
+succNotZero : Not (S k = 0)
+succNotZero Refl impossible
+
+noRec : (contra : Not (k = l)) -> Not (S k = S l)
+noRec contra Refl = contra (Refl)
+
+checkEqNat : (n : Nat) -> (m : Nat) -> Dec (n = m)
+checkEqNat Z Z = Yes Refl
+checkEqNat Z (S k) = No zeroNotSucc
+checkEqNat (S k) Z = No succNotZero
+checkEqNat (S k) (S l) =
+  case checkEqNat k l of
+    Yes Refl => Yes Refl
+    No contra => No (noRec contra)
