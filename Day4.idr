@@ -1,22 +1,24 @@
 module Day4
 
+import Data.Either
 import Data.List
 import Data.List1
 import Data.Nat
 import Data.SortedSet
 import Data.String
+import Data.String.Parser
 import Data.Vect
 import System
 import System.File
 import Utils
 
 example = """
-  2-4,6-8
-  2-3,4-5
-  5-7,7-9
-  2-8,3-7
-  6-6,4-6
-  2-6,4-8
+2-4,6-8
+2-3,4-5
+5-7,7-9
+2-8,3-7
+6-6,4-6
+2-6,4-8
 """
 
 -- Part 1
@@ -29,26 +31,34 @@ record SectionAssignment where
   from, to : SectionId
   isValidRange : LTE from to
 
+Show SectionAssignment where
+  show assignment = show (from assignment) ++ "-" ++ show (to assignment)
+
 SectionAssignmentPair : Type
 SectionAssignmentPair = (SectionAssignment, SectionAssignment)
 
-parseSectionAssignment : String -> Maybe SectionAssignment
-parseSectionAssignment s = do
-  let [s1, s2] = splitString '-' s | _ => Nothing
-  from <- parsePositive s1
-  to <- parsePositive s2
-  let Yes isValidRange = isLTE from to | No _ => Nothing
-  Just (MkSectionAssignment from to isValidRange)
+sectionAssignmentParser : Parser SectionAssignment
+sectionAssignmentParser = do
+  from <- natural
+  skip (char '-')
+  to <- natural
+  let Yes isValidRange = isLTE from to | No _ => fail "invalid range \${from}-\${to}"
+  pure $ MkSectionAssignment from to isValidRange
 
-parseSectionAssignmentPair : String -> Maybe SectionAssignmentPair
-parseSectionAssignmentPair s = do
-  let [s1, s2] = splitString ',' s | _ => Nothing
-  assignment1 <- parseSectionAssignment s1
-  assignment2 <- parseSectionAssignment s2
-  Just (assignment1, assignment2)
+sectionAssignmentPairParser : Parser SectionAssignmentPair
+sectionAssignmentPairParser = do
+  assignment1 <- sectionAssignmentParser
+  skip (char ',')
+  assignment2 <- sectionAssignmentParser
+  pure (assignment1, assignment2)
+
+sectionAssignmentsParser : Parser (List SectionAssignmentPair)
+sectionAssignmentsParser = do
+  assignments <- sepBy sectionAssignmentPairParser (char '\n')
+  pure assignments
 
 parseSectionAssignments : String -> Maybe (List SectionAssignmentPair)
-parseSectionAssignments = traverse parseSectionAssignmentPair . lines
+parseSectionAssignments = map fst . eitherToMaybe . parse sectionAssignmentsParser
 
 containsId : SectionAssignment -> SectionId -> Bool
 containsId assignment id = assignment.from <= id && id <= assignment.to
@@ -67,9 +77,6 @@ solve' = count (uncurry needsReconsideration)
 solve : String -> Maybe Nat
 solve = map solve' . parseSectionAssignments
 
-exampleWorks : solve Day4.example = Just 2
-exampleWorks = Refl
-
 -- Part 2
 
 disjoint : SectionAssignment -> SectionAssignment -> Bool
@@ -84,9 +91,6 @@ solve2' = count (uncurry overlap)
 
 solve2 : String -> Maybe Nat
 solve2 = map solve2' . parseSectionAssignments
-
-exampleWorks2 : solve2 Day4.example = Just 4
-exampleWorks2 = Refl
 
 -- Driver
 
