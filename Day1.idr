@@ -48,7 +48,7 @@ solve2 = map solve2' . parseInventories
 
 main : IO ()
 main = do
-  Right contents <- readFile "day1.txt" | Left error => die ("Error reading file: " ++ show error)
+  contents <- readDay 1
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: " ++ show answer1)
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"

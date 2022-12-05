@@ -1,4 +1,4 @@
-module Main
+module Day2
 
 import Data.List
 import Data.List1
