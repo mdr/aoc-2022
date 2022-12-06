@@ -140,9 +140,39 @@ solve = map solve' . parsePuzzleInput
 
 -- Part 2
 
--- solve2 : String -> Maybe Nat
--- solve2 = map solve2' . parseSectionAssignments
+popStack' : Nat -> Stack -> (Stack, Stack)
+popStack' n stack = (stack |> take n, stack |> drop n)
 
+pushStack' : Stack -> Stack -> Stack
+pushStack' xs ys = xs ++ ys
+
+moveCratesFromTo' : (n, from, to: Nat) -> State -> Maybe State
+moveCratesFromTo' n from to state = do
+  fromStack <- lookup from state
+  let (liftedCrates, fromStack') = popStack' n fromStack
+  toStack <- lookup to state
+  let toStack' = pushStack' liftedCrates toStack
+  let newState = state |> insert from fromStack' |> insert to toStack'
+  Just newState
+
+
+applyInstruction' : Instruction -> State -> State
+applyInstruction' instruction state = 
+  case moveCratesFromTo' (n instruction) (from instruction) (to instruction) state of
+    Nothing => state
+    Just state' => state'
+
+solve2' : PuzzleInput -> String
+solve2' (state, instructions) = 
+  let 
+    finalState = foldl (flip applyInstruction') state instructions
+    topOfStacks = getTopOfStacks finalState
+  in
+    pack topOfStacks
+
+solve2 : String -> Maybe String
+solve2 = map solve2' . parsePuzzleInput
+  
 -- Driver
 
 main : IO ()
@@ -150,5 +180,5 @@ main = do
   contents <- readDay 5
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}")
-  -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  -- putStrLn ("Part 2: \{show answer2}")
+  let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
+  putStrLn ("Part 2: \{show answer2}")
