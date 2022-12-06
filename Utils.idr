@@ -64,9 +64,23 @@ iterate : Monad m => (n : Nat) -> (a -> m a) -> a -> m a
 iterate 0 _ a = pure a
 iterate (S n) f x = f x >>= iterate n f
 
+public export
+allDifferent : Eq a => List a -> Bool
+allDifferent xs = xs == nub xs
+
+public export
+slidingWindows : (n : Nat) -> List a -> {auto prf : NonZero n} -> List (List a)
+slidingWindows n [] = []
+slidingWindows (S n) (x :: xs) {prf = SIsNonZero} = 
+  let 
+    window = x :: take n xs
+  in
+    if length window == S n then window :: slidingWindows (S n) xs else []
+
 partial
 export 
 readDay : Fin 26 -> IO (String)
 readDay n = do
   Right contents <- readFile "inputs/day\{show n}.txt" | Left error => die ("Error reading file: " ++ show error)
   pure contents
+

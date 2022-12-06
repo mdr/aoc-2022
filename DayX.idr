@@ -10,6 +10,8 @@ import System
 import System.File
 import Utils
 
+%default total
+
 example = """
 """
 
@@ -34,6 +36,7 @@ solve2 = map solve2' . parsePuzzleInput
 
 -- Driver
 
+partial
 main : IO ()
 main = do
   contents <- readDay X
