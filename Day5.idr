@@ -102,21 +102,15 @@ moveCratesFromTo n from to state = do
   let (liftedCrates, fromStack') = popStack n fromStack
   toStack <- lookup to state
   let toStack' = pushStack liftedCrates toStack
-  let newState = state |> insert from fromStack' |> insert to toStack'
+  let newState = state |> insert from fromStack' |> insert to toStack' |> Just
   Just newState
 
 moveCratesOneAtAtTime : (n, from, to: Nat) -> State -> Maybe State
-moveCratesOneAtAtTime n from to state = 
-  [1..n] |> foldlM (\state, _ => moveCratesFromTo 1 from to state) state
+moveCratesOneAtAtTime n from to = iterate n (moveCratesFromTo 1 from to)
 
 applyInstruction : Instruction -> State -> State
 applyInstruction instruction state = 
-  case moveCratesOneAtAtTime instruction.n instruction.from instruction.to state of
-    Nothing => state
-    Just state' => state'
-
-size : SortedMap k v -> Nat
-size = length . values
+  moveCratesOneAtAtTime instruction.n instruction.from instruction.to state |> fromMaybe state
 
 readTopOfStacks : State -> String
 readTopOfStacks state =
@@ -154,8 +148,6 @@ main : IO ()
 main = do
   contents <- readDay 5
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
-  putStrLn ("Part 1: \{show answer1}")
+  putStrLn ("Part 1: \{show answer1}") -- "QPJPLMNNR"
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  putStrLn ("Part 2: \{show answer2}")
--- Part 1: "QPJPLMNNR"
--- Part 2: "BQDNWJPVJ"
+  putStrLn ("Part 2: \{show answer2}") -- "BQDNWJPVJ"

@@ -55,6 +55,15 @@ public export
 sortedMapFromPairs : (Ord k) => List (k, v) -> SortedMap k v
 sortedMapFromPairs = foldl (\m, (k, v) => insert k v m) empty
 
+public export
+size : SortedMap k v -> Nat
+size = length . values
+
+public export
+iterate : Monad m => (n : Nat) -> (a -> m a) -> a -> m a
+iterate 0 _ a = pure a
+iterate (S n) f x = f x >>= iterate n f
+
 partial
 export 
 readDay : Fin 26 -> IO (String)
