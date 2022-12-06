@@ -82,7 +82,7 @@ solve2 = solve2' . parseElfGroups
 
 main : IO ()
 main = do
-  Right contents <- readFile "day3.txt" | Left error => die ("Error reading file: \{show error}")
+  contents <- readDay 3
   let answer1 = solve contents
   putStrLn ("Part 1: \{show answer1}")
   let answer2 = solve2 contents
