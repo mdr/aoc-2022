@@ -11,6 +11,8 @@ import System
 import System.File
 import Utils
 
+%default total
+
 example = """
     [D]    
 [N] [C]    
@@ -39,10 +41,12 @@ record Instruction where
   n, from, to : Nat
 
 Show Instruction where
-  show instruction = "move " ++ show (n instruction) ++ " from " ++ show (from instruction) ++ " to " ++ show (to instruction)
+  show instruction = "move " ++ show instruction.n ++ " from " ++ show instruction.from ++ " to " ++ show instruction.to
   
 PuzzleInput : Type
 PuzzleInput = (State, List Instruction)
+
+-- Parsing
 
 crateAt : String -> Nat -> Maybe Crate
 crateAt s n = case s |> unpack |> drop n of
@@ -57,9 +61,6 @@ parseCrates s =
   |> drop 1 
   |> reverse 
   |> map (\i => crateAt s (i * 4 + 1))
-
-sortedMapFromPairs : (Ord k) => List (k, v) -> SortedMap k v
-sortedMapFromPairs = foldl (\m, (k, v) => insert k v m) empty
 
 parseState : List String -> State
 parseState lines =
@@ -87,94 +88,68 @@ parsePuzzleInput s = do
   instructions <- parseInstructions instructionsLines  
   Just (state, instructions)
 
-popStack : Stack -> Maybe (Crate, Stack)
-popStack [] = Nothing
-popStack (x :: xs) = Just (x, xs)
+-- Part 1
 
-pushStack : Crate -> Stack -> Stack
-pushStack x xs = x :: xs
+popStack : Nat -> Stack -> (Stack, Stack)
+popStack n stack = (stack |> take n, stack |> drop n)
 
-updateMapBy : k -> (v -> v) -> SortedMap k v -> SortedMap k v
-updateMapBy k f m = case lookup k m of
-  Nothing => m
-  Just v => insert k (f v) m
+pushStack : Stack -> Stack -> Stack
+pushStack xs ys = xs ++ ys
 
-moveCrateFromTo : (from, to: Nat) -> State -> Maybe State
-moveCrateFromTo from to state = do
+moveCratesFromTo : (n, from, to: Nat) -> State -> Maybe State
+moveCratesFromTo n from to state = do
   fromStack <- lookup from state
-  (crate, fromStack') <- popStack fromStack
+  let (liftedCrates, fromStack') = popStack n fromStack
   toStack <- lookup to state
-  let toStack' = pushStack crate toStack
+  let toStack' = pushStack liftedCrates toStack
   let newState = state |> insert from fromStack' |> insert to toStack'
   Just newState
 
-moveCratesFromTo : (n, from, to: Nat) -> State -> Maybe State
-moveCratesFromTo 0 from to state = Just state
-moveCratesFromTo (S k) from to state = do
-  state' <- moveCrateFromTo from to state
-  moveCratesFromTo k from to state'
+moveCratesOneAtAtTime : (n, from, to: Nat) -> State -> Maybe State
+moveCratesOneAtAtTime n from to state = 
+  [1..n] |> foldlM (\state, _ => moveCratesFromTo 1 from to state) state
 
 applyInstruction : Instruction -> State -> State
 applyInstruction instruction state = 
-  case moveCratesFromTo (n instruction) (from instruction) (to instruction) state of
+  case moveCratesOneAtAtTime instruction.n instruction.from instruction.to state of
     Nothing => state
     Just state' => state'
 
 size : SortedMap k v -> Nat
 size = length . values
 
-getTopOfStacks : State -> List Crate
-getTopOfStacks state =
-  [1..size state] |> map (\i => lookup i state) |> catMaybes |> map head' |> catMaybes
+readTopOfStacks : State -> String
+readTopOfStacks state =
+  [1..size state] |> mapMaybe (flip lookup state) |> mapMaybe head' |> pack
+
+solveWith : (Instruction -> State -> State) -> PuzzleInput -> String
+solveWith handleInstruction (state, instructions) = 
+  let 
+    finalState = foldl (flip handleInstruction) state instructions
+  in
+    readTopOfStacks finalState
 
 solve' : PuzzleInput -> String
-solve' (state, instructions) = 
-  let 
-    finalState = foldl (flip applyInstruction) state instructions
-    topOfStacks = getTopOfStacks finalState
-  in
-    pack topOfStacks
+solve' = solveWith applyInstruction
 
 solve : String -> Maybe String
 solve = map solve' . parsePuzzleInput
 
 -- Part 2
 
-popStack' : Nat -> Stack -> (Stack, Stack)
-popStack' n stack = (stack |> take n, stack |> drop n)
-
-pushStack' : Stack -> Stack -> Stack
-pushStack' xs ys = xs ++ ys
-
-moveCratesFromTo' : (n, from, to: Nat) -> State -> Maybe State
-moveCratesFromTo' n from to state = do
-  fromStack <- lookup from state
-  let (liftedCrates, fromStack') = popStack' n fromStack
-  toStack <- lookup to state
-  let toStack' = pushStack' liftedCrates toStack
-  let newState = state |> insert from fromStack' |> insert to toStack'
-  Just newState
-
-
-applyInstruction' : Instruction -> State -> State
-applyInstruction' instruction state = 
-  case moveCratesFromTo' (n instruction) (from instruction) (to instruction) state of
-    Nothing => state
-    Just state' => state'
+applyInstruction2 : Instruction -> State -> State
+applyInstruction2 instruction state = 
+   moveCratesFromTo instruction.n instruction.from instruction.to state |> fromMaybe state
 
 solve2' : PuzzleInput -> String
-solve2' (state, instructions) = 
-  let 
-    finalState = foldl (flip applyInstruction') state instructions
-    topOfStacks = getTopOfStacks finalState
-  in
-    pack topOfStacks
+solve2' = solveWith applyInstruction2
 
 solve2 : String -> Maybe String
 solve2 = map solve2' . parsePuzzleInput
   
 -- Driver
 
+partial
 main : IO ()
 main = do
   contents <- readDay 5
@@ -182,3 +157,5 @@ main = do
   putStrLn ("Part 1: \{show answer1}")
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
   putStrLn ("Part 2: \{show answer2}")
+-- Part 1: "QPJPLMNNR"
+-- Part 2: "BQDNWJPVJ"

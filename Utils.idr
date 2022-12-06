@@ -1,10 +1,13 @@
 module Utils
 
 import Data.List1
+import Data.SortedMap
 import Data.String
 import Data.Vect
 import System
 import System.File
+
+%default total
 
 infixl 4 |>
 
@@ -12,7 +15,8 @@ public export total
 (|>) : a -> (a -> b) -> b
 a |> f = f a
 
-public export -- not total
+partial
+public export
 chunksOf : Nat -> List a -> List (List a)
 chunksOf n xs = case splitAt n xs of
   (ys, []) => [ys]
@@ -47,6 +51,11 @@ public export
 splitString : Char -> String -> List String
 splitString c s = forget $ split (== c) s
 
+public export
+sortedMapFromPairs : (Ord k) => List (k, v) -> SortedMap k v
+sortedMapFromPairs = foldl (\m, (k, v) => insert k v m) empty
+
+partial
 export 
 readDay : Fin 26 -> IO (String)
 readDay n = do
