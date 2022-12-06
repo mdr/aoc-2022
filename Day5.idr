@@ -102,7 +102,7 @@ moveCratesFromTo n from to state = do
   let (liftedCrates, fromStack') = popStack n fromStack
   toStack <- lookup to state
   let toStack' = pushStack liftedCrates toStack
-  let newState = state |> insert from fromStack' |> insert to toStack' |> Just
+  let newState = state |> insert from fromStack' |> insert to toStack'
   Just newState
 
 moveCratesOneAtAtTime : (n, from, to: Nat) -> State -> Maybe State
