@@ -68,5 +68,5 @@ partial
 export 
 readDay : Fin 26 -> IO (String)
 readDay n = do
-  Right contents <- readFile "day\{show n}.txt" | Left error => die ("Error reading file: " ++ show error)
+  Right contents <- readFile "inputs/day\{show n}.txt" | Left error => die ("Error reading file: " ++ show error)
   pure contents
