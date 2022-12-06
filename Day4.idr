@@ -96,7 +96,7 @@ solve2 = map solve2' . parseSectionAssignments
 
 main : IO ()
 main = do
-  Right contents <- readFile "day4.txt" | Left error => die ("Error reading file: \{show error}")
+  contents <- readDay 4
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}")
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"

@@ -85,7 +85,9 @@ popCrate n state =
       let
         stack = index n state
       in 
-        ?hole
+        case stack of
+          [] => Nothing
+          crate :: rest => Just (crate, ?hole)
     No _ => Nothing
 
 moveCrateFromTo : Nat -> Nat -> State -> State
@@ -105,7 +107,7 @@ solve = map solve' . parsePuzzleInput
 
 main : IO ()
 main = do
-  Right contents <- readFile "day5.txt" | Left error => die ("Error reading file: \{show error}")
+  contents <- readDay 5
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}")
   -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
