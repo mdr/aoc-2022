@@ -3,6 +3,7 @@ module Day5
 import Data.List
 import Data.List1
 import Data.Nat
+import Data.SortedMap
 import Data.SortedSet
 import Data.String
 import Data.Vect
@@ -31,12 +32,15 @@ Stack : Type
 Stack = List Crate
 
 State : Type
-State = List Stack
+State = SortedMap Nat Stack
 
 record Instruction where
   constructor MkInstruction
   n, from, to : Nat
 
+Show Instruction where
+  show instruction = "move " ++ show (n instruction) ++ " from " ++ show (from instruction) ++ " to " ++ show (to instruction)
+  
 PuzzleInput : Type
 PuzzleInput = (State, List Instruction)
 
@@ -54,9 +58,16 @@ parseCrates s =
   |> reverse 
   |> map (\i => crateAt s (i * 4 + 1))
 
+sortedMapFromPairs : (Ord k) => List (k, v) -> SortedMap k v
+sortedMapFromPairs = foldl (\m, (k, v) => insert k v m) empty
+
 parseState : List String -> State
 parseState lines =
-  lines |> reverse |> drop 1 |> map parseCrates |> transpose |> map (reverse . catMaybes)
+  let 
+    stacks = lines |> reverse |> drop 1 |> map parseCrates |> transpose |> map (reverse . catMaybes)
+    ids = [1..length stacks]
+  in 
+    sortedMapFromPairs (ids `zip` stacks)
 
 parseInstruction : String -> Maybe Instruction
 parseInstruction s = do
@@ -76,24 +87,53 @@ parsePuzzleInput s = do
   instructions <- parseInstructions instructionsLines  
   Just (state, instructions)
 
+popStack : Stack -> Maybe (Crate, Stack)
+popStack [] = Nothing
+popStack (x :: xs) = Just (x, xs)
+
+pushStack : Crate -> Stack -> Stack
+pushStack x xs = x :: xs
+
+updateMapBy : k -> (v -> v) -> SortedMap k v -> SortedMap k v
+updateMapBy k f m = case lookup k m of
+  Nothing => m
+  Just v => insert k (f v) m
+
+moveCrateFromTo : (from, to: Nat) -> State -> Maybe State
+moveCrateFromTo from to state = do
+  fromStack <- lookup from state
+  (crate, fromStack') <- popStack fromStack
+  toStack <- lookup to state
+  let toStack' = pushStack crate toStack
+  let newState = state |> insert from fromStack' |> insert to toStack'
+  Just newState
+
+moveCratesFromTo : (n, from, to: Nat) -> State -> Maybe State
+moveCratesFromTo 0 from to state = Just state
+moveCratesFromTo (S k) from to state = do
+  state' <- moveCrateFromTo from to state
+  moveCratesFromTo k from to state'
+
 applyInstruction : Instruction -> State -> State
+applyInstruction instruction state = 
+  case moveCratesFromTo (n instruction) (from instruction) (to instruction) state of
+    Nothing => state
+    Just state' => state'
 
-popCrate : Nat -> State -> Maybe (Crate, State)
-popCrate n state = 
-  case inBounds n state of
-    Yes inBoundsProof => 
-      let
-        stack = index n state
-      in 
-        case stack of
-          [] => Nothing
-          crate :: rest => Just (crate, ?hole)
-    No _ => Nothing
+size : SortedMap k v -> Nat
+size = length . values
 
-moveCrateFromTo : Nat -> Nat -> State -> State
--- moveCrate from to state = 
-  
+getTopOfStacks : State -> List Crate
+getTopOfStacks state =
+  [1..size state] |> map (\i => lookup i state) |> catMaybes |> map head' |> catMaybes
+
 solve' : PuzzleInput -> String
+solve' (state, instructions) = 
+  let 
+    finalState = foldl (flip applyInstruction) state instructions
+    topOfStacks = getTopOfStacks finalState
+  in
+    pack topOfStacks
 
 solve : String -> Maybe String
 solve = map solve' . parsePuzzleInput
