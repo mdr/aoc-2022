@@ -48,7 +48,7 @@ splitString : Char -> String -> List String
 splitString c s = forget $ split (== c) s
 
 export 
-readDay : Nat -> IO (String)
+readDay : Fin 26 -> IO (String)
 readDay n = do
   Right contents <- readFile "day\{show n}.txt" | Left error => die ("Error reading file: " ++ show error)
   pure contents
