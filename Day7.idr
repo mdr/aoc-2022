@@ -10,7 +10,7 @@ import System
 import System.File
 import Utils
 
-%default total
+-- %default total
 
 example = """
 $ cd /
@@ -42,10 +42,19 @@ $ ls
 
 data ListingItem = Dir String | File Nat String
 
+Show ListingItem where
+  show (Dir s) = "dir " ++ s
+  show (File n s) = show n ++ " " ++ s
+
 Listing : Type
 Listing = List ListingItem
 
 data Command = Cd String | CdUp | Ls Listing
+
+Show Command where
+  show (Cd s) = "$ cd " ++ s
+  show CdUp = "$ cd .."
+  show (Ls listing) = "$ dir >>" ++ show listing ++ "<<"
 
 PuzzleInput : Type
 PuzzleInput = List Command
@@ -74,6 +83,12 @@ parseCommand (command :: rest) =
     Nothing
 
 parseCommands : List String -> Maybe (List Command)
+parseCommands [] = Just []
+parseCommands lines = 
+  do
+    (command, rest) <- parseCommand lines
+    commands <- parseCommands rest
+    Just (command :: commands)
 
 parsePuzzleInput : String -> Maybe PuzzleInput
 parsePuzzleInput = parseCommands . lines
