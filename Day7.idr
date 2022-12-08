@@ -3,6 +3,7 @@ module Day7
 import Data.List
 import Data.List1
 import Data.Nat
+import Data.SortedMap
 import Data.SortedSet
 import Data.String
 import Data.Vect
@@ -93,9 +94,54 @@ parseCommands lines =
 parsePuzzleInput : String -> Maybe PuzzleInput
 parsePuzzleInput = parseCommands . lines
 
-data FileSystemNode = File String Nat | Directory String (List FileSystemNode)
+data Node : Type where
+  File : (size : Integer) -> Node
+  Directory : (entries : SortedMap String Node) -> Node
 
-emptyFileSystem = Directory "" []
+data Context : Type where
+  Top : Context
+  Path : (name : String) -> (context: Context) -> (siblings : SortedMap String Node) -> Context
+
+Location : Type
+Location = (Node, Context)
+
+toNode : Location -> Node
+toNode (node, Top) = node
+toNode (node, Path name context siblings) = 
+  toNode (insert name node siblings |> Directory, context)
+
+top : Node -> Location
+top node = (node, Top)
+
+cd : String -> Location -> Maybe Location
+cd _ (File _, context) = Nothing
+cd name (Directory entries, context) = do
+  node <- lookup name entries
+  let siblings = delete name entries
+  Just (node, Path name context siblings)
+
+up : Location -> Maybe Location
+up (node, Top) = Nothing
+up (node, Path name context siblings) = 
+  let node' = insert name node siblings
+  in Just (Directory node', context)
+
+mkdir : String -> Node -> Maybe Node
+mkdir name (File _) = Nothing
+mkdir name (Directory entries) = 
+  case lookup name entries of
+    Just _ => Nothing
+    Nothing => Directory (insert name (Directory SortedMap.empty) entries) |> Just
+
+addFile : (name : String) -> (size : Integer) -> Node -> Maybe Node
+addFile _ _ (File _) = Nothing
+addFile name size (Directory entries) = 
+   (insert name (File size) entries) |> Directory |> Just 
+
+modify :(Node -> Maybe Node) -> Location -> Maybe Location
+modify f (node, context) = f node |> map (, context)
+
+root = Directory SortedMap.empty
 
 solve' : PuzzleInput -> Nat
 
