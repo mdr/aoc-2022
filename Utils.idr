@@ -2,6 +2,7 @@ module Utils
 
 import Data.List1
 import Data.SortedMap
+import Data.SortedSet
 import Data.String
 import Data.Vect
 import System
@@ -64,6 +65,14 @@ size : SortedMap k v -> Nat
 size = length . values
 
 public export
+unionAll : (Foldable f, Ord a) => f (SortedSet a) -> SortedSet a
+unionAll = foldl SortedSet.union SortedSet.empty
+
+public export
+map : (Ord b) => (a -> b) -> SortedSet a -> SortedSet b
+map f = SortedSet.fromList . map f . SortedSet.toList
+
+public export
 iterate : Monad m => (n : Nat) -> (a -> m a) -> a -> m a
 iterate 0 _ a = pure a
 iterate (S n) f x = f x >>= iterate n f
@@ -81,10 +90,17 @@ slidingWindows (S n) (x :: xs) {prf = SIsNonZero} =
   in
     if length window == S n then window :: slidingWindows (S n) xs else []
 
+public export
+zipWithIndex : List a -> List (Integer, a)
+zipWithIndex = zipWithIndex' 0
+  where
+    zipWithIndex' : (index : Integer) -> (List a) -> List (Integer, a)
+    zipWithIndex' index [] = []
+    zipWithIndex' index (x :: xs) = (index, x) :: zipWithIndex' (index + 1) xs
+      
 partial
 export 
 readDay : Fin 26 -> IO (String)
 readDay n = do
   Right contents <- readFile "inputs/day\{show n}.txt" | Left error => die ("Error reading file: " ++ show error)
   pure contents
-
