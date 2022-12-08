@@ -38,7 +38,10 @@ $ ls
 
 -- Types
 
-data ListingItem = DirItem String | FileItem Integer String
+Bytes : Type
+Bytes = Integer
+
+data ListingItem = DirItem String | FileItem Bytes String
 
 Show ListingItem where
   show (DirItem s) = "DirItem " ++ s
@@ -56,7 +59,7 @@ Show Command where
   show (Ls listing) = "Ls " ++ show listing
 
 data Node : Type where
-  File : (size : Integer) -> Node
+  File : (size : Bytes) -> Node
   Directory : (entries : SortedMap String Node) -> Node
 
 -- Parsing
@@ -165,7 +168,7 @@ executeCommands commands = foldlM (flip executeCommand) (top root) commands |> m
 
 -- Queries
 
-getSize : Node -> Integer
+getSize : Node -> Bytes
 getSize (File size) = size
 getSize (Directory entries) = sumBy getSize entries
 
@@ -175,11 +178,11 @@ getDirectories directory@(Directory entries) = directory :: (values entries >>= 
 
 -- Part 1
 
-findAndSumAllSmallDirectories : Node -> Integer
+findAndSumAllSmallDirectories : Node -> Bytes
 findAndSumAllSmallDirectories node = 
   getDirectories node |> map getSize |> filter (<= 100000) |> sum
 
-solve' : List Command -> Maybe Integer
+solve' : List Command -> Maybe Bytes
 solve' commands = executeCommands commands |> map findAndSumAllSmallDirectories
 
 solve : String -> Maybe Integer
@@ -187,13 +190,13 @@ solve = parseCommands >=> solve'
 
 -- Part 2
 
-totalDiskSpace : Integer
+totalDiskSpace : Bytes
 totalDiskSpace = 70000000
 
-targetAvailableDiskSpace : Integer
+targetAvailableDiskSpace : Bytes
 targetAvailableDiskSpace = 30000000
 
-solve2' : List Command -> Maybe Integer
+solve2' : List Command -> Maybe Bytes
 solve2' commands = do
   rootNode <- executeCommands commands
   let availableDiskSpace = totalDiskSpace - getSize rootNode
