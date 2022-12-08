@@ -32,7 +32,7 @@ TreeGrid : Type
 TreeGrid = List (List Height)
 
 parseTreeGrid : String -> Maybe TreeGrid
-parseTreeGrid = traverse (traverse (parsePositive . cast)) . map unpack . lines
+parseTreeGrid = lines .> map unpack .> traverse (traverse (cast .> parsePositive))
 
 visibleIndices : List Height -> List Integer
 visibleIndices = visibleIndices' {maxHeightSoFar = -1} {index = 0}
@@ -55,23 +55,26 @@ visibleInRow heights =
     SortedSet.fromList (forwards ++ backwards)
 
 visibleInRows : TreeGrid -> SortedSet Point
-visibleInRows = unionAll . map (\(index, indices) => map (index,) indices) . zipWithIndex . map visibleInRow
+visibleInRows = map visibleInRow .> zipWithIndex .> map broadcastPair .> unionAll
+  where
+    broadcastPair : (Ord a, Ord b) => (a, SortedSet b) -> SortedSet (a, b)
+    broadcastPair (a, bs) = map (a,) bs
 
 visibleInGrid : TreeGrid -> SortedSet Point
 visibleInGrid grid = (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
 
 solve' : TreeGrid -> Integer
-solve' = cast . length . SortedSet.toList . visibleInGrid
+solve' = visibleInGrid .> SortedSet.toList .> length .> cast
 
 solve : String -> Maybe Integer
-solve = map solve' . parseTreeGrid
+solve = parseTreeGrid .> map solve'
 
 -- Part 2
 
 solve2' : TreeGrid -> Integer
 
 solve2 : String -> Maybe Integer
-solve2 = map solve2' . parseTreeGrid
+solve2 = parseTreeGrid .> map solve2'
 
 -- Driver
 

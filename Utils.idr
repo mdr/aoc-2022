@@ -12,12 +12,13 @@ import System.File
 
 infixl 1 |>
 
-public export total
+public export
 (|>) : a -> (a -> b) -> b
 a |> f = f a
 
 infixl 1 .>
 
+public export
 (.>) : (a -> b) -> (b -> c) -> (a -> c)
 f .> g = g . f
 
@@ -29,28 +30,28 @@ chunksOf n xs = case splitAt n xs of
   (ys, zs) => ys :: chunksOf n zs
 
 -- simpler total chunking as suggested by ohad in Idris discord:
-public export total
+public export
 chunksOf3 : List a -> List (Vect 3 a)
 chunksOf3 (a :: b :: c :: rest) = [a, b, c] :: chunksOf3 rest
 chunksOf3 _ = []
 
-public export total
+public export
 sumBy : Num b => Foldable t => (a -> b) -> t a -> b
 sumBy f = foldl (\x, y => x + f y) 0
 
-public export total
+public export
 maxList : Ord ty => List ty -> Maybe ty
 maxList = map (foldr1 max) . List1.fromList
 
-public export total
+public export
 minimum : Ord ty => List ty -> Maybe ty
 minimum = map (foldr1 min) . List1.fromList
 
-public export total
+public export
 getLineGroups : String -> List (List String)
 getLineGroups = forget . split (== "") . lines . trim
 
-public export total
+public export
 liftM2 : Monad m => (a1 -> a2 -> r) -> m a1 -> m a2 -> m r
 liftM2 f m1 m2 = do
   x1 <- m1
