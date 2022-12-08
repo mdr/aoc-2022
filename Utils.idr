@@ -37,6 +37,10 @@ maxList : Ord ty => List ty -> Maybe ty
 maxList = map (foldr1 max) . List1.fromList
 
 public export total
+minList : Ord ty => List ty -> Maybe ty
+minList = map (foldr1 min) . List1.fromList
+
+public export total
 getLineGroups : String -> List (List String)
 getLineGroups = forget . split (== "") . lines . trim
 
