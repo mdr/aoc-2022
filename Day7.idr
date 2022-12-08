@@ -38,9 +38,7 @@ $ ls
 7214296 k
 """
 
--- Part 1
-
--- Parsing
+-- Types
 
 data ListingItem = DirItem String | FileItem Integer String
 
@@ -59,8 +57,11 @@ Show Command where
   show CdRoot = "CdRoot"
   show (Ls listing) = "Ls " ++ show listing
 
-PuzzleInput : Type
-PuzzleInput = List Command
+data Node : Type where
+  File : (size : Integer) -> Node
+  Directory : (entries : SortedMap String Node) -> Node
+
+-- Parsing
 
 parseListingItem : String -> Maybe ListingItem
 parseListingItem s = do
@@ -85,22 +86,18 @@ parseCommand (command :: rest) =
   else 
     Nothing
 
-parseCommands : List String -> Maybe (List Command)
-parseCommands [] = Just []
-parseCommands lines = 
+parseCommands' : List String -> Maybe (List Command)
+parseCommands' [] = Just []
+parseCommands' lines = 
   do
     (command, rest) <- parseCommand lines
-    commands <- parseCommands rest
+    commands <- parseCommands' rest
     Just (command :: commands)
 
-parsePuzzleInput : String -> Maybe PuzzleInput
-parsePuzzleInput = parseCommands . lines
+parseCommands : String -> Maybe (List Command)
+parseCommands = parseCommands' . lines
 
--- Filesystem & Zipper
-
-data Node : Type where
-  File : (size : Integer) -> Node
-  Directory : (entries : SortedMap String Node) -> Node
+-- Zipper
 
 data Context : Type where
   Top : Context
@@ -158,33 +155,35 @@ processListingItem (DirItem name) location = modify (mkdir name) location
 processListingItem (FileItem size name) location = modify (addFile name size) location
 
 executeCommand : Command -> Location -> Maybe Location
-executeCommand (Cd name) location = cd name location
-executeCommand CdUp location = up location
-executeCommand CdRoot location = Just (upmost location)
-executeCommand (Ls listing) location = foldlM (flip processListingItem) location listing
+executeCommand (Cd name) = cd name
+executeCommand CdUp = up
+executeCommand CdRoot = Just . upmost
+executeCommand (Ls listing) = \location => foldlM (flip processListingItem) location listing
 
 executeCommands : List Command -> Maybe Node
 executeCommands commands = foldlM (flip executeCommand) (top root) commands |> map toNode
 
--- scan for directories with total sizes
+-- Queries
 
 getSize : Node -> Integer
 getSize (File size) = size
-getSize (Directory entries) = foldl (\acc, node => acc + getSize node) 0 entries
+getSize (Directory entries) = sumBy getSize entries
 
 getDirectories : Node -> List Node
 getDirectories (File _) = []
 getDirectories directory@(Directory entries) = directory :: (values entries >>= getDirectories)
 
+-- Part 1
+
 findAndSumAllSmallDirectories : Node -> Integer
 findAndSumAllSmallDirectories node = 
   getDirectories node |> map getSize |> filter (<= 100000) |> sum
 
-solve' : PuzzleInput -> Maybe Integer
+solve' : List Command -> Maybe Integer
 solve' commands = executeCommands commands |> map findAndSumAllSmallDirectories
 
 solve : String -> Maybe Integer
-solve = parsePuzzleInput >=> solve'
+solve = parseCommands >=> solve'
 
 -- Part 2
 
@@ -194,15 +193,15 @@ totalDiskSpace = 70000000
 targetAvailableDiskSpace : Integer
 targetAvailableDiskSpace = 30000000
 
-solve2' : PuzzleInput -> Maybe Integer
+solve2' : List Command -> Maybe Integer
 solve2' commands = do
-  node <- executeCommands commands
-  let availableDiskSpace = totalDiskSpace - getSize node
+  rootNode <- executeCommands commands
+  let availableDiskSpace = totalDiskSpace - getSize rootNode
   let shortfall = targetAvailableDiskSpace - availableDiskSpace
-  getDirectories node |> map getSize |> filter (>= shortfall) |> minList
+  getDirectories rootNode |> map getSize |> filter (>= shortfall) |> minimum
 
 solve2 : String -> Maybe Integer
-solve2 = parsePuzzleInput >=> solve2'
+solve2 = parseCommands >=> solve2'
 
 -- Driver
 
