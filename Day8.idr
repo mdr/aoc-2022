@@ -44,17 +44,18 @@ visibleIndices = visibleIndices' {maxHeightSoFar = -1} {index = 0}
       then index :: visibleIndices' height (index + 1) hs
       else visibleIndices' maxHeightSoFar (index + 1) hs
 
-visibleInRow : (row : Integer) -> List Height -> SortedSet Point
-visibleInRow row heights = 
+visibleInRow : List Height -> SortedSet Integer
+visibleInRow heights = 
   let 
-    forwards = map (row,) (visibleIndices heights)
+    forwards = visibleIndices heights
     width = cast (length heights)
-    backwards = map (\column => (row, (width - column - 1))) (visibleIndices (reverse heights))
+    reverseIndex = \i => width - i - 1
+    backwards = reverse heights |> visibleIndices |> map reverseIndex
   in 
     SortedSet.fromList (forwards ++ backwards)
 
 visibleInRows : TreeGrid -> SortedSet Point
-visibleInRows = unionAll . map (uncurry visibleInRow) . zipWithIndex
+visibleInRows = unionAll . map (\(index, indices) => map (index,) indices) . zipWithIndex . map visibleInRow
 
 visibleInGrid : TreeGrid -> SortedSet Point
 visibleInGrid grid = (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
@@ -79,6 +80,6 @@ main : IO ()
 main = do
   contents <- readDay 8
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
-  putStrLn ("Part 1: \{show answer1}")
+  putStrLn ("Part 1: \{show answer1}") -- 1849
   -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
   -- putStrLn ("Part 2: \{show answer2}")

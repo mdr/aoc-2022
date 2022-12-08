@@ -10,11 +10,16 @@ import System.File
 
 %default total
 
-infixl 4 |>
+infixl 1 |>
 
 public export total
 (|>) : a -> (a -> b) -> b
 a |> f = f a
+
+infixl 1 .>
+
+(.>) : (a -> b) -> (b -> c) -> (a -> c)
+f .> g = g . f
 
 partial
 public export

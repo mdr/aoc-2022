@@ -2,6 +2,7 @@ module Day1
 
 import Data.List
 import Data.List1
+import Data.Fin
 import Data.String
 import System
 import System.File
