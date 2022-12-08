@@ -10,8 +10,6 @@ import Data.Vect
 import System
 import Utils
 
--- %default total
-
 example = """
 $ cd /
 $ ls
