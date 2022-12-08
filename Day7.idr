@@ -95,6 +95,22 @@ parseCommands' lines =
 parseCommands : String -> Maybe (List Command)
 parseCommands = parseCommands' . lines
 
+-- Node manipulation
+
+root = Directory SortedMap.empty
+
+mkdir : String -> Node -> Maybe Node
+mkdir name (File _) = Nothing
+mkdir name (Directory entries) = 
+  case lookup name entries of
+    Just _ => Nothing
+    Nothing => Directory (insert name (Directory SortedMap.empty) entries) |> Just
+
+addFile : (name : String) -> (size : Integer) -> Node -> Maybe Node
+addFile _ _ (File _) = Nothing
+addFile name size (Directory entries) = 
+   (insert name (File size) entries) |> Directory |> Just 
+
 -- Zipper
 
 data Context : Type where
@@ -129,22 +145,8 @@ upmost : Location -> Location
 upmost (node, Top) = (node, Top)
 upmost (node, Path name context siblings) = upmost (Directory (insert name node siblings), context)
 
-mkdir : String -> Node -> Maybe Node
-mkdir name (File _) = Nothing
-mkdir name (Directory entries) = 
-  case lookup name entries of
-    Just _ => Nothing
-    Nothing => Directory (insert name (Directory SortedMap.empty) entries) |> Just
-
-addFile : (name : String) -> (size : Integer) -> Node -> Maybe Node
-addFile _ _ (File _) = Nothing
-addFile name size (Directory entries) = 
-   (insert name (File size) entries) |> Directory |> Just 
-
 modify : (Node -> Maybe Node) -> Location -> Maybe Location
 modify f (node, context) = f node |> map (, context)
-
-root = Directory SortedMap.empty
 
 -- Run commands
 
