@@ -40,8 +40,8 @@ sumBy : Num b => Foldable t => (a -> b) -> t a -> b
 sumBy f = foldl (\x, y => x + f y) 0
 
 public export
-maxList : Ord ty => List ty -> Maybe ty
-maxList = map (foldr1 max) . List1.fromList
+maximum : Ord ty => List ty -> Maybe ty
+maximum = map (foldr1 max) . List1.fromList
 
 public export
 minimum : Ord ty => List ty -> Maybe ty

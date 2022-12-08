@@ -71,10 +71,44 @@ solve = parseTreeGrid .> map solve'
 
 -- Part 2
 
-solve2' : TreeGrid -> Integer
+viewingDistance : Height -> List Height -> Integer
+viewingDistance height [] = 0
+viewingDistance height (h :: hs) = if h >= height then 1 else 1 + viewingDistance height hs
+
+scenicScore1D : Nat -> List Height -> Integer
+scenicScore1D i heights = 
+  let
+    height = drop i heights |> head' |> fromMaybe 0
+    prefix' = take i heights
+    suffix = drop (i + 1) heights
+  in 
+    viewingDistance height (reverse prefix') * viewingDistance height suffix
+
+scenicScore : TreeGrid -> Point -> Integer
+scenicScore grid (row, column) =
+  let
+    (r, c) = (cast row, cast column)
+    horizontalTrees = drop r grid |> head' |> fromMaybe []
+    verticalTrees = transpose grid |> drop c |> head' |> fromMaybe []
+  in 
+    scenicScore1D c horizontalTrees * scenicScore1D r verticalTrees
+
+cartesianProduct : List a -> List b -> List (a, b)
+cartesianProduct as bs = [(a, b) | a <- as, b <- bs]
+
+allPoints : TreeGrid -> List Point
+allPoints grid =
+  let
+    rows = length grid
+    columns = grid |> transpose |> length
+  in
+    [0 .. cast rows - 1] `cartesianProduct` [0 .. cast columns - 1]
+
+solve2' : TreeGrid -> Maybe Integer
+solve2' grid = allPoints grid |> map (scenicScore grid) |> maximum
 
 solve2 : String -> Maybe Integer
-solve2 = parseTreeGrid .> map solve2'
+solve2 = parseTreeGrid >=> solve2'
 
 -- Driver
 
@@ -84,5 +118,5 @@ main = do
   contents <- readDay 8
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}") -- 1849
-  -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  -- putStrLn ("Part 2: \{show answer2}")
+  let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
+  putStrLn ("Part 2: \{show answer2}") -- 201600
