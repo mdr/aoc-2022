@@ -154,8 +154,8 @@ modify f (node, context) = f node |> map (, context)
 -- Run commands
 
 processListingItem : ListingItem -> Location -> Maybe Location
-processListingItem (DirItem name) location = modify (mkdir name) location
-processListingItem (FileItem size name) location = modify (addFile name size) location
+processListingItem (DirItem name) = modify (mkdir name) 
+processListingItem (FileItem size name) = modify (addFile name size) 
 
 executeCommand : Command -> Location -> Maybe Location
 executeCommand (Cd name) = cd name
