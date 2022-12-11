@@ -106,6 +106,14 @@ allDifferent : Eq a => List a -> Bool
 allDifferent xs = xs == nub xs
 
 public export
+updateHead : (a -> a) -> List1 a -> List1 a
+updateHead f (x ::: xs) = f x ::: xs
+
+public export
+replicate1 : (n : Nat) -> a -> {auto prf : NonZero n} -> List1 a
+replicate1 (S n) x {prf = SIsNonZero} = x ::: replicate n x
+
+public export
 slidingWindows : (n : Nat) -> List a -> {auto prf : NonZero n} -> List (List a)
 slidingWindows n [] = []
 slidingWindows (S n) (x :: xs) {prf = SIsNonZero} = 

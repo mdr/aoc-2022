@@ -62,16 +62,13 @@ record State where
 origin : Point
 origin = (0, 0)
 
-replicate1 : (n : Nat) -> a -> {auto prf : NonZero n} -> List1 a
-replicate1 (S n) x {prf = SIsNonZero} = x ::: replicate n x
-
 makeInitialState : (knots : Nat) -> {auto prf : NonZero knots} -> State
 makeInitialState knots = 
   let
     rope = replicate1 knots origin
-    tail = last rope
+    tailVisited = singleton (last rope)
   in
-    MkState rope (singleton tail)
+    MkState rope tailVisited
 
 Semigroup Integer where
   (<+>) = (+)
@@ -82,17 +79,11 @@ getDelta U = (0, 1)
 getDelta L = (-1, 0)
 getDelta D = (0, -1)
 
-updateHead : (a -> a) -> List1 a -> List1 a
-updateHead f (x ::: xs) = f x ::: xs
-
-updateTail : (List a -> List a) -> List1 a -> List1 a
-updateTail f (x ::: xs) = x ::: f xs
-
 updateRope : (List1 Point -> List1 Point) -> State -> State
 updateRope f = { rope $= f }
 
 moveHead : Direction -> State -> State
-moveHead direction = updateRope (updateHead (<+> getDelta direction)) 
+moveHead = updateRope . updateHead . (<+>) . getDelta
 
 subtract : Point -> Point -> Vector
 subtract (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
