@@ -21,7 +21,7 @@ example = """
 35390
 """
 
--- Part 1
+-- Types
 
 Height : Type
 Height = Fin 10
@@ -36,12 +36,13 @@ record TreeGridWithBounds where
   rows, columns : Nat
   grid : TreeGrid rows columns
 
+Point : Nat -> Nat -> Type
+Point rows columns = (Fin rows, Fin columns)
+
+-- Parsing
+
 parseHeight : Char -> Maybe Height
 parseHeight c = integerToFin (cast (ord c - ord '0')) 10
-
-decToMaybe : Dec prop -> Maybe prop
-decToMaybe (Yes prf) = Just prf
-decToMaybe (No _) = Nothing
 
 parseTreeLine : (columns : Nat) -> String -> Maybe (Vect columns Height)
 parseTreeLine columns s = do
@@ -59,22 +60,23 @@ parseTreeGrid s =
     grid <- traverse (parseTreeLine columns) lines
     Just (MkTreeGridWithBounds rows columns grid)
 
-Point : Nat -> Nat -> Type
-Point rows columns = (Fin rows, Fin columns)
+-- Part 1
 
 visibleIndices : Vect columns (Fin columns, Height) -> SortedSet (Fin columns)
 visibleIndices = visibleIndices' {maxHeightSoFar = Nothing}
   where
+    greaterThan : Maybe Height -> Maybe Height -> Bool
+    greaterThan (Just a) (Just b) = a > b
+    greaterThan (Just a) Nothing = True
+    greaterThan Nothing _ = False
+
     visibleIndices' : (maxHeightSoFar : Maybe Height) -> Vect cols (Fin columns, Height) -> SortedSet (Fin columns)
-    visibleIndices' maxHeightSoFar Nil = SortedSet.empty
+    visibleIndices' maxHeightSoFar [] = SortedSet.empty
     visibleIndices' maxHeightSoFar ((column, height) :: heights) =
-      case maxHeightSoFar of
-        Nothing => SortedSet.insert column (visibleIndices' (Just height) heights)
-        Just maxHeightSoFar => 
-          if height > maxHeightSoFar then
-            SortedSet.insert column (visibleIndices' (Just height) heights)
-          else
-            visibleIndices' (Just maxHeightSoFar) heights
+      if (Just height) `greaterThan` maxHeightSoFar then
+        SortedSet.insert column (visibleIndices' (Just height) heights)
+      else
+        visibleIndices' maxHeightSoFar heights
 
 visibleInRow : Vect columns Height -> SortedSet (Fin columns)
 visibleInRow heights =
@@ -96,20 +98,20 @@ visibleInGrid : {columns : _} -> TreeGrid rows columns -> SortedSet (Point rows 
 visibleInGrid grid = 
   (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
 
-solve' : {columns : _} -> TreeGrid rows columns -> Integer
+solve' : {columns : _} -> TreeGrid rows columns -> Nat
 solve' = visibleInGrid .> SortedSet.toList .> length .> cast
 
-solve : String -> Maybe Integer
+solve : String -> Maybe Nat
 solve s = do
   treeGrid <- parseTreeGrid s
-  let (MkTreeGridWithBounds rows columns grid) = treeGrid
-  Just (solve' grid)
+  Just (solve' treeGrid.grid)
 
 -- Part 2
 
 solve2' : TreeGrid rows columns -> Maybe Integer
 
 solve2 : String -> Maybe Integer
+-- solve2 = parseTreeGrid >=> solve2'
 
 -- Driver
 

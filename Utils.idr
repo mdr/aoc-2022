@@ -104,7 +104,7 @@ zipWithIndex = zipWithIndex' 0
     zipWithIndex' index [] = []
     zipWithIndex' index (x :: xs) = (index, x) :: zipWithIndex' (index + 1) xs
 
-namespace VectUtils
+namespace Vect
   public export
   zipWithIndex : Vect n a -> Vect n (Fin n, a)
   zipWithIndex [] = []
@@ -120,6 +120,11 @@ listToVect [] = (0 ** [])
 listToVect (x :: xs) = 
   let (p ** xs') = listToVect xs in
     (S p ** x :: xs')
+
+public export
+decToMaybe : Dec prop -> Maybe prop
+decToMaybe (Yes prf) = Just prf
+decToMaybe (No _) = Nothing
 
 partial
 export 
