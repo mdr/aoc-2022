@@ -140,8 +140,11 @@ moveAndFollow direction = tailFollow . moveHead direction
 handleMotion : Motion -> State -> State
 handleMotion (direction, distance) = iterate distance (moveAndFollow direction)
 
+handleMotions : List Motion -> State -> State
+handleMotions motions state = foldl (flip handleMotion) state motions
+
 solveWith : (initialState : State) -> List Motion -> Nat
-solveWith initialState = foldl (flip handleMotion) initialState .> .tailVisited .> size
+solveWith initialState motions = initialState |> handleMotions motions |> .tailVisited |> size
 
 solve' : List Motion -> Nat
 solve' = solveWith (makeInitialState 2)
