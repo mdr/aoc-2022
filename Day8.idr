@@ -99,7 +99,7 @@ visibleInGrid grid =
   (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
 
 solve' : {columns : _} -> TreeGrid rows columns -> Nat
-solve' = visibleInGrid .> SortedSet.toList .> length .> cast
+solve' = visibleInGrid .> SortedSet.toList .> length
 
 solve : String -> Maybe Nat
 solve s = do
@@ -133,15 +133,15 @@ scenicScore grid (row, column) =
   in
     scenicScore1D column horizontalTrees * scenicScore1D row verticalTrees
 
-allPoints : {rows, columns : Nat} -> SortedSet (Point rows columns)
-allPoints {rows} {columns} = 
+allPoints : (rows, columns : Nat) -> SortedSet (Point rows columns)
+allPoints rows columns = 
   let
     points = (allFins' rows) `cartesianProduct` (allFins' columns)
   in
     toSet points
 
 solve2' : {rows, columns : _} -> TreeGrid rows columns -> Maybe Nat
-solve2' grid = allPoints |> map (scenicScore grid) |> maximum
+solve2' grid = allPoints rows columns |> map (scenicScore grid) |> maximum
 
 solve2 : String -> Maybe Nat
 solve2 s = do
