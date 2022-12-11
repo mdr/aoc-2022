@@ -56,15 +56,22 @@ Vector = (Integer, Integer)
 
 record State where
   constructor MkState
-  head : Point
-  followers : List1 Point
+  rope : List1 Point
   tailVisited : SortedSet Point
 
 origin : Point
 origin = (0, 0)
 
-twoKnotsInitialState: State
-twoKnotsInitialState = MkState origin (singleton origin) (singleton origin)
+replicate1 : (n : Nat) -> a -> {auto prf : NonZero n} -> List1 a
+replicate1 (S n) x {prf = SIsNonZero} = x ::: replicate n x
+
+makeInitialState : (knots : Nat) -> {auto prf : NonZero knots} -> State
+makeInitialState knots = 
+  let
+    rope = replicate1 knots origin
+    tail = last rope
+  in
+    MkState rope (singleton tail)
 
 Semigroup Integer where
   (<+>) = (+)
@@ -75,8 +82,17 @@ getDelta U = (0, 1)
 getDelta L = (-1, 0)
 getDelta D = (0, -1)
 
+updateHead : (a -> a) -> List1 a -> List1 a
+updateHead f (x ::: xs) = f x ::: xs
+
+updateTail : (List a -> List a) -> List1 a -> List1 a
+updateTail f (x ::: xs) = x ::: f xs
+
+updateRope : (List1 Point -> List1 Point) -> State -> State
+updateRope f = { rope $= f }
+
 moveHead : Direction -> State -> State
-moveHead direction = { head $= (<+> (getDelta direction)) }
+moveHead direction = updateRope (updateHead (<+> getDelta direction)) 
 
 subtract : Point -> Point -> Vector
 subtract (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
@@ -116,19 +132,15 @@ updateFollowers leader (follower :: followers) =
   in 
     updatedFollower :: updateFollowers updatedFollower followers
     
-updateFollowers1 : (leader : Point) -> (followers : List1 Point) -> List1 Point
-updateFollowers1 leader (first ::: rest) = 
-  let 
-    updatedFirst = follow leader first
-  in 
-    updatedFirst ::: updateFollowers updatedFirst rest
+updateFollowers1 : (rope : List1 Point) -> List1 Point
+updateFollowers1 (head ::: followers) = head ::: updateFollowers head followers
 
 tailFollow : State -> State
-tailFollow state@(MkState head followers tailVisited) = 
+tailFollow state@(MkState rope tailVisited) = 
   let 
-    updatedFollowers = updateFollowers1 head followers
+    updatedRope = updateFollowers1 rope
   in 
-    { followers := updatedFollowers, tailVisited := insert (last updatedFollowers) tailVisited } state
+    { rope := updatedRope, tailVisited := insert (last updatedRope) tailVisited } state
 
 moveAndFollow : Direction -> State -> State
 moveAndFollow direction = tailFollow . moveHead direction
@@ -140,7 +152,7 @@ solveWith : (initialState : State) -> List Motion -> Nat
 solveWith initialState = foldl (flip handleMotion) initialState .> .tailVisited .> size
 
 solve' : List Motion -> Nat
-solve' = solveWith twoKnotsInitialState
+solve' = solveWith (makeInitialState 2)
 
 solve : String -> Maybe Nat
 solve = map solve' . parseMotions
@@ -158,17 +170,8 @@ L 25
 U 20
 """
 
-tenKnotsInitialState : State
-tenKnotsInitialState = 
-  let
-    head = origin
-    followers = origin ::: replicate 8 origin
-    tailVisited = singleton (last followers)
-  in
-    MkState head followers tailVisited
-
 solve2' : List Motion -> Nat
-solve2' = solveWith tenKnotsInitialState
+solve2' = solveWith (makeInitialState 10)
 
 solve2 : String -> Maybe Nat
 solve2 = map solve2' . parseMotions
@@ -182,4 +185,4 @@ main = do
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}") -- 6269
   let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  putStrLn ("Part 2: \{show answer2}")
+  putStrLn ("Part 2: \{show answer2}") -- 2557
