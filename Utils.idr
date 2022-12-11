@@ -48,6 +48,10 @@ namespace SortedSet
   maximum : Ord ty => SortedSet ty -> Maybe ty
   maximum = Utils.maximum . SortedSet.toList
 
+  public export
+  size : SortedSet a -> Nat
+  size = length . SortedSet.toList
+  
 public export
 toSet : Foldable t => Ord a => t a -> SortedSet a
 toSet = foldl (\s, x => insert x s) empty
@@ -88,9 +92,14 @@ map : (Ord b) => (a -> b) -> SortedSet a -> SortedSet b
 map f = SortedSet.fromList . map f . SortedSet.toList
 
 public export
-iterate : Monad m => (n : Nat) -> (a -> m a) -> a -> m a
-iterate 0 _ a = pure a
-iterate (S n) f x = f x >>= iterate n f
+iterateM : Monad m => (n : Nat) -> (a -> m a) -> a -> m a
+iterateM 0 _ a = pure a
+iterateM (S n) f x = f x >>= iterateM n f
+
+public export
+iterate : Nat -> (a -> a) -> a -> a
+iterate 0 f x = x
+iterate (S n) f x = iterate n f (f x)
 
 public export
 allDifferent : Eq a => List a -> Bool

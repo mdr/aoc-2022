@@ -11,6 +11,7 @@ import System.File
 import Utils
 
 %default total
+%prefix_record_projections off
 
 example = """
 """

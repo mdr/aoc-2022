@@ -106,7 +106,7 @@ moveCratesFromTo n from to state = do
   Just newState
 
 moveCratesOneAtAtTime : (n, from, to: Nat) -> State -> Maybe State
-moveCratesOneAtAtTime n from to = iterate n (moveCratesFromTo 1 from to)
+moveCratesOneAtAtTime n from to = iterateM n (moveCratesFromTo 1 from to)
 
 applyInstruction : Instruction -> State -> State
 applyInstruction instruction state = 
