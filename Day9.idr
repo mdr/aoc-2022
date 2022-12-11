@@ -56,14 +56,15 @@ Vector = (Integer, Integer)
 
 record State where
   constructor MkState
-  head, tail : Point
+  head : Point
+  followers : List1 Point
   tailVisited : SortedSet Point
 
 origin : Point
 origin = (0, 0)
 
-initialState: State
-initialState = MkState origin origin (singleton origin)
+twoKnotsInitialState: State
+twoKnotsInitialState = MkState origin (singleton origin) (singleton origin)
 
 Semigroup Integer where
   (<+>) = (+)
@@ -107,13 +108,27 @@ follow leader follower =
   else
     follower <+> getFollowVector leader follower
 
+updateFollowers : (leader : Point) -> (followers : List Point) -> List Point
+updateFollowers leader [] = []
+updateFollowers leader (follower :: followers) =
+  let 
+    updatedFollower = follow leader follower
+  in 
+    updatedFollower :: updateFollowers updatedFollower followers
+    
+updateFollowers1 : (leader : Point) -> (followers : List1 Point) -> List1 Point
+updateFollowers1 leader (first ::: rest) = 
+  let 
+    updatedFirst = follow leader first
+  in 
+    updatedFirst ::: updateFollowers updatedFirst rest
+
 tailFollow : State -> State
-tailFollow state@(MkState head tail tailVisited) = 
-    let 
-      tail' = follow head tail
-      tailVisited' = insert tail' tailVisited
-    in 
-      { tail := tail', tailVisited := tailVisited' } state
+tailFollow state@(MkState head followers tailVisited) = 
+  let 
+    updatedFollowers = updateFollowers1 head followers
+  in 
+    { followers := updatedFollowers, tailVisited := insert (last updatedFollowers) tailVisited } state
 
 moveAndFollow : Direction -> State -> State
 moveAndFollow direction = tailFollow . moveHead direction
@@ -121,12 +136,11 @@ moveAndFollow direction = tailFollow . moveHead direction
 handleMotion : Motion -> State -> State
 handleMotion (direction, distance) = iterate distance (moveAndFollow direction)
 
+solveWith : (initialState : State) -> List Motion -> Nat
+solveWith initialState = foldl (flip handleMotion) initialState .> .tailVisited .> size
+
 solve' : List Motion -> Nat
-solve' motions = 
-  let 
-    finalState = foldl (flip handleMotion) initialState motions
-  in 
-    finalState.tailVisited |> size
+solve' = solveWith twoKnotsInitialState
 
 solve : String -> Maybe Nat
 solve = map solve' . parseMotions
@@ -144,7 +158,17 @@ L 25
 U 20
 """
 
+tenKnotsInitialState : State
+tenKnotsInitialState = 
+  let
+    head = origin
+    followers = origin ::: replicate 8 origin
+    tailVisited = singleton (last followers)
+  in
+    MkState head followers tailVisited
+
 solve2' : List Motion -> Nat
+solve2' = solveWith tenKnotsInitialState
 
 solve2 : String -> Maybe Nat
 solve2 = map solve2' . parseMotions
@@ -157,5 +181,5 @@ main = do
   contents <- readDay 9
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}") -- 6269
-  -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  -- putStrLn ("Part 2: \{show answer2}")
+  let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
+  putStrLn ("Part 2: \{show answer2}")
