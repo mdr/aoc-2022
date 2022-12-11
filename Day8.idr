@@ -125,7 +125,7 @@ scenicScore1D i heights =
   in
     viewingDistance height (reverse treesLeft) * viewingDistance height treesRight
 
-scenicScore : {columns : Nat } -> TreeGrid rows columns -> (Point rows columns) -> Nat
+scenicScore : {columns : Nat} -> TreeGrid rows columns -> (Point rows columns) -> Nat
 scenicScore grid (row, column) =
   let
     horizontalTrees = index row grid
@@ -135,10 +135,8 @@ scenicScore grid (row, column) =
 
 allPoints : (rows, columns : Nat) -> SortedSet (Point rows columns)
 allPoints rows columns = 
-  let
-    points = (allFins' rows) `cartesianProduct` (allFins' columns)
-  in
-    toSet points
+  let points = (allFins' rows) `cartesianProduct` (allFins' columns)
+  in toSet points
 
 solve2' : {rows, columns : _} -> TreeGrid rows columns -> Maybe Nat
 solve2' grid = allPoints rows columns |> map (scenicScore grid) |> maximum
