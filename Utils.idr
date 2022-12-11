@@ -108,6 +108,13 @@ public export
 cartesianProduct : List a -> List b -> List (a, b)
 cartesianProduct as bs = [(a, b) | a <- as, b <- bs]
 
+public export
+listToVect : (xs : List a) -> (p : Nat ** Vect p a)
+listToVect [] = (0 ** [])
+listToVect (x :: xs) = 
+  let (p ** xs') = listToVect xs in
+    (S p ** x :: xs')
+
 partial
 export 
 readDay : Fin 26 -> IO (String)
