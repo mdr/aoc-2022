@@ -103,15 +103,27 @@ solve' = visibleInGrid .> SortedSet.toList .> length .> cast
 
 solve : String -> Maybe Nat
 solve s = do
-  treeGrid <- parseTreeGrid s
-  Just (solve' treeGrid.grid)
+  MkTreeGridWithBounds _ _ grid <- parseTreeGrid s
+  Just (solve' grid)
 
 -- Part 2
 
-solve2' : TreeGrid rows columns -> Maybe Integer
+scenicScore : TreeGrid rows columns -> (Point rows columns) -> Nat
 
-solve2 : String -> Maybe Integer
--- solve2 = parseTreeGrid >=> solve2'
+allPoints : {rows, columns : Nat} -> SortedSet (Point rows columns)
+allPoints {rows} {columns} = 
+  let
+    points = allFins' rows `cartesianProduct` allFins' columns
+  in
+    toSet points
+
+solve2' : {rows, columns : _} -> TreeGrid rows columns -> Maybe Nat
+solve2' grid = allPoints |> map (scenicScore grid) |> maximum
+
+solve2 : String -> Maybe Nat
+solve2 s = do
+  MkTreeGridWithBounds _ _ grid <- parseTreeGrid s
+  solve2' grid
 
 -- Driver
 

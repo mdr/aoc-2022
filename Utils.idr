@@ -43,6 +43,15 @@ public export
 maximum : Ord ty => List ty -> Maybe ty
 maximum = map (foldr1 max) . List1.fromList
 
+namespace SortedSet
+  public export
+  maximum : Ord ty => SortedSet ty -> Maybe ty
+  maximum = Utils.maximum . SortedSet.toList
+
+public export
+toSet : Foldable t => Ord a => t a -> SortedSet a
+toSet = foldl (\s, x => insert x s) empty
+
 public export
 minimum : Ord ty => List ty -> Maybe ty
 minimum = map (foldr1 min) . List1.fromList
@@ -110,6 +119,21 @@ namespace Vect
   zipWithIndex [] = []
   zipWithIndex (x :: xs) = (0, x) :: map (\(i, x) => (FS i, x)) (zipWithIndex xs)
 
+  public export
+  (>>=) : Vect m a -> (a -> Vect n b) -> Vect (m * n) b
+  as >>= f = concat (map f as)
+
+  public export
+  cartesianProduct : Vect n a -> Vect m b -> Vect (n * m) (a, b)
+  cartesianProduct xs ys = 
+    let result = 
+      Utils.Vect.do
+        x <- xs
+        y <- ys
+        [(x, y)]
+    in
+      rewrite (sym (multOneRightNeutral m)) in result
+
 public export
 cartesianProduct : List a -> List b -> List (a, b)
 cartesianProduct as bs = [(a, b) | a <- as, b <- bs]
@@ -125,6 +149,11 @@ public export
 decToMaybe : Dec prop -> Maybe prop
 decToMaybe (Yes prf) = Just prf
 decToMaybe (No _) = Nothing
+
+public export
+allFins' : (n : Nat) -> List (Fin n)
+allFins' 0 = []
+allFins' (S n) = FZ :: (map FS (allFins' n))
 
 partial
 export 
