@@ -104,6 +104,12 @@ zipWithIndex = zipWithIndex' 0
     zipWithIndex' index [] = []
     zipWithIndex' index (x :: xs) = (index, x) :: zipWithIndex' (index + 1) xs
 
+namespace VectUtils
+  public export
+  zipWithIndex : Vect n a -> Vect n (Fin n, a)
+  zipWithIndex [] = []
+  zipWithIndex (x :: xs) = (0, x) :: map (\(i, x) => (FS i, x)) (zipWithIndex xs)
+
 public export
 cartesianProduct : List a -> List b -> List (a, b)
 cartesianProduct as bs = [(a, b) | a <- as, b <- bs]

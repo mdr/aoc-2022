@@ -59,9 +59,51 @@ parseTreeGrid s =
     grid <- traverse (parseTreeLine columns) lines
     Just (MkTreeGridWithBounds rows columns grid)
 
-solve' : TreeGrid rows columns -> Integer
+Point : Nat -> Nat -> Type
+Point rows columns = (Fin rows, Fin columns)
+
+visibleIndices : Vect columns (Fin columns, Height) -> SortedSet (Fin columns)
+visibleIndices = visibleIndices' {maxHeightSoFar = Nothing}
+  where
+    visibleIndices' : (maxHeightSoFar : Maybe Height) -> Vect cols (Fin columns, Height) -> SortedSet (Fin columns)
+    visibleIndices' maxHeightSoFar Nil = SortedSet.empty
+    visibleIndices' maxHeightSoFar ((column, height) :: heights) =
+      case maxHeightSoFar of
+        Nothing => SortedSet.insert column (visibleIndices' (Just height) heights)
+        Just maxHeightSoFar => 
+          if height > maxHeightSoFar then
+            SortedSet.insert column (visibleIndices' (Just height) heights)
+          else
+            visibleIndices' (Just maxHeightSoFar) heights
+
+visibleInRow : Vect columns Height -> SortedSet (Fin columns)
+visibleInRow heights =
+  let
+    heightsWithIndex = heights |> zipWithIndex
+    forwards = heightsWithIndex |> visibleIndices
+    backwards = heightsWithIndex |> reverse |> visibleIndices
+  in
+    forwards `union` backwards
+
+visibleInRows : TreeGrid rows columns -> SortedSet (Point rows columns)
+visibleInRows grid = 
+    grid |> map visibleInRow |> zipWithIndex |> map broadcastPair |> unionAll
+  where
+    broadcastPair : (Ord a, Ord b) => (a, SortedSet b) -> SortedSet (a, b)
+    broadcastPair (a, bs) = map (a,) bs
+
+visibleInGrid : {columns : _} -> TreeGrid rows columns -> SortedSet (Point rows columns)
+visibleInGrid grid = 
+  (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
+
+solve' : {columns : _} -> TreeGrid rows columns -> Integer
+solve' = visibleInGrid .> SortedSet.toList .> length .> cast
 
 solve : String -> Maybe Integer
+solve s = do
+  treeGrid <- parseTreeGrid s
+  let (MkTreeGridWithBounds rows columns grid) = treeGrid
+  Just (solve' grid)
 
 -- Part 2
 
