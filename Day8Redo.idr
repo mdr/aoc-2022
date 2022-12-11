@@ -112,22 +112,18 @@ viewingDistance : Height -> List Height -> Nat
 viewingDistance height [] = 0
 viewingDistance height (h :: hs) = if h >= height then 1 else 1 + viewingDistance height hs
 
-take' : Fin n -> Vect n a -> List a
-take' FZ xs = []
-take' (FS n') (x :: xs) = x :: take' n' xs
-
-drop' : Fin n -> Vect n a -> List a
-drop' FZ xs = toList xs
-drop' (FS n') (x :: xs) = drop' n' xs
+indexWithContext : Fin n -> Vect n a -> (List a, a, List a)
+indexWithContext FZ (x :: xs) = ([], x, toList xs)
+indexWithContext (FS n') (x :: xs) = 
+  let (left, middle, right) = indexWithContext n' xs
+  in (x :: left, middle, right)
 
 scenicScore1D : Fin len -> Vect len Height -> Nat
 scenicScore1D i heights =
   let
-    height = index i heights
-    treesLeft = take' i heights |> reverse
-    treesRight = drop' i heights |> drop 1
+    (treesLeft, height, treesRight) = indexWithContext i heights
   in
-    viewingDistance height treesLeft * viewingDistance height treesRight
+    viewingDistance height (reverse treesLeft) * viewingDistance height treesRight
 
 scenicScore : {columns : Nat } -> TreeGrid rows columns -> (Point rows columns) -> Nat
 scenicScore grid (row, column) =
