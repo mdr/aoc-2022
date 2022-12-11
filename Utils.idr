@@ -103,7 +103,11 @@ zipWithIndex = zipWithIndex' 0
     zipWithIndex' : (index : Integer) -> (List a) -> List (Integer, a)
     zipWithIndex' index [] = []
     zipWithIndex' index (x :: xs) = (index, x) :: zipWithIndex' (index + 1) xs
-      
+
+public export
+cartesianProduct : List a -> List b -> List (a, b)
+cartesianProduct as bs = [(a, b) | a <- as, b <- bs]
+
 partial
 export 
 readDay : Fin 26 -> IO (String)

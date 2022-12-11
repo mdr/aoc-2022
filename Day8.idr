@@ -37,7 +37,7 @@ parseTreeGrid = lines .> map unpack .> traverse (traverse (cast .> parsePositive
 visibleIndices : List Height -> List Integer
 visibleIndices = visibleIndices' {maxHeightSoFar = -1} {index = 0}
   where
-    visibleIndices' : (maxHeightSoFar : Height) -> (index : Integer) -> (List Height) -> List Integer
+    visibleIndices' : (maxHeightSoFar : Height) -> (index : Integer) -> List Height -> List Integer
     visibleIndices' _ _ [] = []
     visibleIndices' maxHeightSoFar index (height :: hs) =
       if height > maxHeightSoFar
@@ -92,9 +92,6 @@ scenicScore grid (row, column) =
     verticalTrees = transpose grid |> drop c |> head' |> fromMaybe []
   in 
     scenicScore1D c horizontalTrees * scenicScore1D r verticalTrees
-
-cartesianProduct : List a -> List b -> List (a, b)
-cartesianProduct as bs = [(a, b) | a <- as, b <- bs]
 
 allPoints : TreeGrid -> List Point
 allPoints grid =
