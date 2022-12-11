@@ -114,6 +114,13 @@ replicate1 : (n : Nat) -> a -> {auto prf : NonZero n} -> List1 a
 replicate1 (S n) x {prf = SIsNonZero} = x ::: replicate n x
 
 public export
+sign : Integer -> Integer
+sign n = 
+  if n == 0 then 0
+  else if n > 0 then 1
+  else -1
+
+public export
 slidingWindows : (n : Nat) -> List a -> {auto prf : NonZero n} -> List (List a)
 slidingWindows n [] = []
 slidingWindows (S n) (x :: xs) {prf = SIsNonZero} = 

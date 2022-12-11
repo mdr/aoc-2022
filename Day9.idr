@@ -24,12 +24,43 @@ L 5
 R 2
 """
 
+-- Types and domain model
+
 data Direction = R | U | L | D
 
 Motion : Type
 Motion = (Direction, Nat)
 
--- Part 1
+Point : Type
+Point = (Integer, Integer)
+
+Vector : Type
+Vector = (Integer, Integer)
+
+Rope : Type
+Rope = List1 Point
+
+record State where
+  constructor MkState
+  rope : Rope
+  tailVisited : SortedSet Point
+
+origin : Point
+origin = (0, 0)
+
+Semigroup Integer where
+  (<+>) = (+)
+  
+getDelta : Direction -> Vector
+getDelta R = (1, 0)
+getDelta U = (0, 1)
+getDelta L = (-1, 0)
+getDelta D = (0, -1)
+
+subtract : Point -> Point -> Vector
+subtract (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+
+-- Parsing
 
 parseDirection : String -> Maybe Direction
 parseDirection "R" = Just R
@@ -48,19 +79,7 @@ parseMotion s = do
 parseMotions : String -> Maybe (List Motion)
 parseMotions s = s |> lines |> traverse parseMotion
 
-Point : Type
-Point = (Integer, Integer)
-
-Vector : Type
-Vector = (Integer, Integer)
-
-record State where
-  constructor MkState
-  rope : List1 Point
-  tailVisited : SortedSet Point
-
-origin : Point
-origin = (0, 0)
+-- Part 1
 
 makeInitialState : (knots : Nat) -> {auto prf : NonZero knots} -> State
 makeInitialState knots = 
@@ -70,29 +89,11 @@ makeInitialState knots =
   in
     MkState rope tailVisited
 
-Semigroup Integer where
-  (<+>) = (+)
-
-getDelta : Direction -> Vector
-getDelta R = (1, 0)
-getDelta U = (0, 1)
-getDelta L = (-1, 0)
-getDelta D = (0, -1)
-
-updateRope : (List1 Point -> List1 Point) -> State -> State
+updateRope : (Rope -> Rope) -> State -> State
 updateRope f = { rope $= f }
 
 moveHead : Direction -> State -> State
 moveHead = updateRope . updateHead . (<+>) . getDelta
-
-subtract : Point -> Point -> Vector
-subtract (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
-
-sign : Integer -> Integer
-sign n = 
-  if n == 0 then 0
-  else if n > 0 then 1
-  else -1
 
 signVector : Vector -> Vector
 signVector (x, y) = (sign x, sign y)
@@ -115,21 +116,21 @@ follow leader follower =
   else
     follower <+> getFollowVector leader follower
 
-updateFollowers : (leader : Point) -> (followers : List Point) -> List Point
-updateFollowers leader [] = []
-updateFollowers leader (follower :: followers) =
-  let 
-    updatedFollower = follow leader follower
-  in 
-    updatedFollower :: updateFollowers updatedFollower followers
-    
-updateFollowers1 : (rope : List1 Point) -> List1 Point
-updateFollowers1 (head ::: followers) = head ::: updateFollowers head followers
+updateFollowers : Rope -> Rope
+updateFollowers (head ::: followers) = head ::: updateFollowers' head followers
+where
+  updateFollowers' : (leader : Point) -> (followers : List Point) -> List Point
+  updateFollowers' leader [] = []
+  updateFollowers' leader (follower :: followers) =
+    let 
+      updatedFollower = follow leader follower
+    in 
+      updatedFollower :: updateFollowers' updatedFollower followers
 
 tailFollow : State -> State
 tailFollow state@(MkState rope tailVisited) = 
   let 
-    updatedRope = updateFollowers1 rope
+    updatedRope = updateFollowers rope
   in 
     { rope := updatedRope, tailVisited := insert (last updatedRope) tailVisited } state
 
