@@ -108,12 +108,39 @@ solve s = do
 
 -- Part 2
 
-scenicScore : TreeGrid rows columns -> (Point rows columns) -> Nat
+viewingDistance : Height -> List Height -> Nat
+viewingDistance height [] = 0
+viewingDistance height (h :: hs) = if h >= height then 1 else 1 + viewingDistance height hs
+
+take' : Fin n -> Vect n a -> List a
+take' FZ xs = []
+take' (FS n') (x :: xs) = x :: take' n' xs
+
+drop' : Fin n -> Vect n a -> List a
+drop' FZ xs = toList xs
+drop' (FS n') (x :: xs) = drop' n' xs
+
+scenicScore1D : Fin len -> Vect len Height -> Nat
+scenicScore1D i heights =
+  let
+    height = index i heights
+    treesLeft = take' i heights |> reverse
+    treesRight = drop' i heights |> drop 1
+  in
+    viewingDistance height treesLeft * viewingDistance height treesRight
+
+scenicScore : {columns : Nat } -> TreeGrid rows columns -> (Point rows columns) -> Nat
+scenicScore grid (row, column) =
+  let
+    horizontalTrees = index row grid
+    verticalTrees = index column (transpose grid)
+  in
+    scenicScore1D column horizontalTrees * scenicScore1D row verticalTrees
 
 allPoints : {rows, columns : Nat} -> SortedSet (Point rows columns)
 allPoints {rows} {columns} = 
   let
-    points = allFins' rows `cartesianProduct` allFins' columns
+    points = (allFins' rows) `cartesianProduct` (allFins' columns)
   in
     toSet points
 
