@@ -1,5 +1,6 @@
 module Day8
 
+import Decidable.Equality
 import Data.List
 import Data.List1
 import Data.Nat
@@ -20,92 +21,132 @@ example = """
 35390
 """
 
--- Part 1
-
-Point : Type
-Point = (Integer, Integer)
+-- Types
 
 Height : Type
-Height = Integer
+Height = Fin 10
 
-TreeGrid : Type
-TreeGrid = List (List Height)
+TreeGrid : (rows, columns : Nat) -> Type
+TreeGrid rows columns = Vect rows (Vect columns Height)
 
-parseTreeGrid : String -> Maybe TreeGrid
-parseTreeGrid = lines .> map unpack .> traverse (traverse (cast .> parsePositive))
+%prefix_record_projections off
 
-visibleIndices : List Height -> List Integer
-visibleIndices = visibleIndices' {maxHeightSoFar = -1} {index = 0}
+record TreeGridWithBounds where
+  constructor MkTreeGridWithBounds
+  rows, columns : Nat
+  grid : TreeGrid rows columns
+
+Point : Nat -> Nat -> Type
+Point rows columns = (Fin rows, Fin columns)
+
+-- Parsing
+
+parseHeight : Char -> Maybe Height
+parseHeight c = integerToFin (cast (ord c - ord '0')) 10
+
+parseTreeLine : (columns : Nat) -> String -> Maybe (Vect columns Height)
+parseTreeLine columns s = do
+  let (actualColumns ** chars) = unpack s |> listToVect
+  heights <- traverse parseHeight chars
+  prf <- decEq columns actualColumns |> decToMaybe
+  Just $ rewrite prf in heights
+
+parseTreeGrid : String -> Maybe TreeGridWithBounds
+parseTreeGrid s = 
+  do
+    let (rows ** lines) = lines s |> listToVect
+    firstLine <- vectToMaybe lines
+    let (columns ** _) = unpack firstLine |> listToVect
+    grid <- traverse (parseTreeLine columns) lines
+    Just (MkTreeGridWithBounds rows columns grid)
+
+-- Part 1
+
+visibleIndices : Vect columns (Fin columns, Height) -> SortedSet (Fin columns)
+visibleIndices = visibleIndices' {maxHeightSoFar = Nothing}
   where
-    visibleIndices' : (maxHeightSoFar : Height) -> (index : Integer) -> List Height -> List Integer
-    visibleIndices' _ _ [] = []
-    visibleIndices' maxHeightSoFar index (height :: hs) =
-      if height > maxHeightSoFar
-      then index :: visibleIndices' height (index + 1) hs
-      else visibleIndices' maxHeightSoFar (index + 1) hs
+    greaterThan : Maybe Height -> Maybe Height -> Bool
+    greaterThan (Just a) (Just b) = a > b
+    greaterThan (Just a) Nothing = True
+    greaterThan Nothing _ = False
 
-visibleInRow : List Height -> SortedSet Integer
-visibleInRow heights = 
-  let 
-    forwards = visibleIndices heights
-    width = cast (length heights)
-    reverseIndex = \i => width - i - 1
-    backwards = reverse heights |> visibleIndices |> map reverseIndex
-  in 
-    SortedSet.fromList (forwards ++ backwards)
+    visibleIndices' : (maxHeightSoFar : Maybe Height) -> Vect cols (Fin columns, Height) -> SortedSet (Fin columns)
+    visibleIndices' maxHeightSoFar [] = SortedSet.empty
+    visibleIndices' maxHeightSoFar ((column, height) :: heights) =
+      if (Just height) `greaterThan` maxHeightSoFar then
+        SortedSet.insert column (visibleIndices' (Just height) heights)
+      else
+        visibleIndices' maxHeightSoFar heights
 
-visibleInRows : TreeGrid -> SortedSet Point
-visibleInRows = map visibleInRow .> zipWithIndex .> map broadcastPair .> unionAll
+visibleInRow : Vect columns Height -> SortedSet (Fin columns)
+visibleInRow heights =
+  let
+    heightsWithIndex = heights |> zipWithIndex
+    forwards = heightsWithIndex |> visibleIndices
+    backwards = heightsWithIndex |> reverse |> visibleIndices
+  in
+    forwards `union` backwards
+
+visibleInRows : TreeGrid rows columns -> SortedSet (Point rows columns)
+visibleInRows grid = 
+    grid |> map visibleInRow |> zipWithIndex |> map broadcastPair |> unionAll
   where
     broadcastPair : (Ord a, Ord b) => (a, SortedSet b) -> SortedSet (a, b)
     broadcastPair (a, bs) = map (a,) bs
 
-visibleInGrid : TreeGrid -> SortedSet Point
-visibleInGrid grid = (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
+visibleInGrid : {columns : _} -> TreeGrid rows columns -> SortedSet (Point rows columns)
+visibleInGrid grid = 
+  (visibleInRows grid) `union` (transpose grid |> visibleInRows |> map swap)
 
-solve' : TreeGrid -> Integer
+solve' : {columns : _} -> TreeGrid rows columns -> Nat
 solve' = visibleInGrid .> SortedSet.toList .> length .> cast
 
-solve : String -> Maybe Integer
-solve = parseTreeGrid .> map solve'
+solve : String -> Maybe Nat
+solve s = do
+  MkTreeGridWithBounds _ _ grid <- parseTreeGrid s
+  Just (solve' grid)
 
 -- Part 2
 
-viewingDistance : Height -> List Height -> Integer
+viewingDistance : Height -> List Height -> Nat
 viewingDistance height [] = 0
 viewingDistance height (h :: hs) = if h >= height then 1 else 1 + viewingDistance height hs
 
-scenicScore1D : Nat -> List Height -> Integer
-scenicScore1D i heights = 
-  let
-    height = drop i heights |> head' |> fromMaybe 0
-    prefix' = take i heights
-    suffix = drop (i + 1) heights
-  in 
-    viewingDistance height (reverse prefix') * viewingDistance height suffix
+indexWithContext : Fin n -> Vect n a -> (List a, a, List a)
+indexWithContext FZ (x :: xs) = ([], x, toList xs)
+indexWithContext (FS n') (x :: xs) = 
+  let (left, middle, right) = indexWithContext n' xs
+  in (x :: left, middle, right)
 
-scenicScore : TreeGrid -> Point -> Integer
+scenicScore1D : Fin len -> Vect len Height -> Nat
+scenicScore1D i heights =
+  let
+    (treesLeft, height, treesRight) = indexWithContext i heights
+  in
+    viewingDistance height (reverse treesLeft) * viewingDistance height treesRight
+
+scenicScore : {columns : Nat } -> TreeGrid rows columns -> (Point rows columns) -> Nat
 scenicScore grid (row, column) =
   let
-    (r, c) = (cast row, cast column)
-    horizontalTrees = drop r grid |> head' |> fromMaybe []
-    verticalTrees = transpose grid |> drop c |> head' |> fromMaybe []
-  in 
-    scenicScore1D c horizontalTrees * scenicScore1D r verticalTrees
-
-allPoints : TreeGrid -> List Point
-allPoints grid =
-  let
-    rows = length grid
-    columns = grid |> transpose |> length
+    horizontalTrees = index row grid
+    verticalTrees = index column (transpose grid)
   in
-    [0 .. cast rows - 1] `cartesianProduct` [0 .. cast columns - 1]
+    scenicScore1D column horizontalTrees * scenicScore1D row verticalTrees
 
-solve2' : TreeGrid -> Maybe Integer
-solve2' grid = allPoints grid |> map (scenicScore grid) |> maximum
+allPoints : {rows, columns : Nat} -> SortedSet (Point rows columns)
+allPoints {rows} {columns} = 
+  let
+    points = (allFins' rows) `cartesianProduct` (allFins' columns)
+  in
+    toSet points
 
-solve2 : String -> Maybe Integer
-solve2 = parseTreeGrid >=> solve2'
+solve2' : {rows, columns : _} -> TreeGrid rows columns -> Maybe Nat
+solve2' grid = allPoints |> map (scenicScore grid) |> maximum
+
+solve2 : String -> Maybe Nat
+solve2 s = do
+  MkTreeGridWithBounds _ _ grid <- parseTreeGrid s
+  solve2' grid
 
 -- Driver
 
