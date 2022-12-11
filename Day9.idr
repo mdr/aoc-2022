@@ -132,7 +132,7 @@ tailFollow state@(MkState rope tailVisited) =
   let 
     updatedRope = updateFollowers rope
   in 
-    { rope := updatedRope, tailVisited := insert (last updatedRope) tailVisited } state
+    { rope := updatedRope, tailVisited $= insert (last updatedRope) } state
 
 moveAndFollow : Direction -> State -> State
 moveAndFollow direction = tailFollow . moveHead direction
