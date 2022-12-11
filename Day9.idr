@@ -45,6 +45,9 @@ record State where
   rope : Rope
   tailVisited : SortedSet Point
 
+makeState : Rope -> State
+makeState rope = MkState rope (singleton (last rope))
+
 origin : Point
 origin = (0, 0)
 
@@ -82,12 +85,7 @@ parseMotions s = s |> lines |> traverse parseMotion
 -- Part 1
 
 makeInitialState : (knots : Nat) -> {auto prf : NonZero knots} -> State
-makeInitialState knots = 
-  let
-    rope = replicate1 knots origin
-    tailVisited = singleton (last rope)
-  in
-    MkState rope tailVisited
+makeInitialState knots = makeState (replicate1 knots origin)
 
 updateRope : (Rope -> Rope) -> State -> State
 updateRope f = { rope $= f }
@@ -129,10 +127,8 @@ where
 
 tailFollow : State -> State
 tailFollow state@(MkState rope tailVisited) = 
-  let 
-    updatedRope = updateFollowers rope
-  in 
-    { rope := updatedRope, tailVisited $= insert (last updatedRope) } state
+  let updatedRope = updateFollowers rope
+  in { rope := updatedRope, tailVisited $= insert (last updatedRope) } state
 
 moveAndFollow : Direction -> State -> State
 moveAndFollow direction = tailFollow . moveHead direction
