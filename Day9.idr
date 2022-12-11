@@ -80,7 +80,7 @@ parseMotion s = do
     Just (direction, distance)
 
 parseMotions : String -> Maybe (List Motion)
-parseMotions s = s |> lines |> traverse parseMotion
+parseMotions = lines .> traverse parseMotion
 
 -- Part 1
 
