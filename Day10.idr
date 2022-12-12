@@ -227,10 +227,10 @@ solve = parseInstructions >=> solve'
 
 -- Part 2
 
-drawPixel : (position : Integer) -> (register : Integer) -> Char
-drawPixel position register = if abs (position - register) <= 1 then '#' else '.'
+drawPixel : (register : Integer) -> (position : Nat) -> Char
+drawPixel register position = if abs (register - cast position) <= 1 then '#' else '.'
 
-drawPixels : List (Integer, Integer) -> String
+drawPixels : List (Integer, Nat) -> String
 drawPixels pairs = map (uncurry drawPixel) pairs |> pack
 
 dropRight : (n : Nat) -> List a -> List a

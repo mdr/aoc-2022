@@ -130,18 +130,18 @@ slidingWindows (S n) (x :: xs) {prf = SIsNonZero} =
     if length window == S n then window :: slidingWindows (S n) xs else []
 
 public export
-zipWithIndex : List a -> List (Integer, a)
+zipWithIndex : List a -> List (a, Nat)
 zipWithIndex = zipWithIndex' 0
   where
-    zipWithIndex' : (index : Integer) -> (List a) -> List (Integer, a)
+    zipWithIndex' : (index : Nat) -> (List a) -> List (a, Nat)
     zipWithIndex' index [] = []
-    zipWithIndex' index (x :: xs) = (index, x) :: zipWithIndex' (index + 1) xs
+    zipWithIndex' index (x :: xs) = (x, index) :: zipWithIndex' (index + 1) xs
 
 namespace Vect
   public export
-  zipWithIndex : Vect n a -> Vect n (Fin n, a)
+  zipWithIndex : Vect n a -> Vect n (a, Fin n)
   zipWithIndex [] = []
-  zipWithIndex (x :: xs) = (0, x) :: map (\(i, x) => (FS i, x)) (zipWithIndex xs)
+  zipWithIndex (x :: xs) = (x, 0) :: map (\(x, i) => (x, FS i)) (zipWithIndex xs)
 
   public export
   (>>=) : Vect m a -> (a -> Vect n b) -> Vect (m * n) b

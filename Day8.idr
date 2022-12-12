@@ -81,7 +81,7 @@ visibleIndices = visibleIndices' {maxHeightSoFar = Nothing}
 visibleInRow : Vect columns Height -> SortedSet (Fin columns)
 visibleInRow heights =
   let
-    heightsWithIndex = heights |> zipWithIndex
+    heightsWithIndex = heights |> zipWithIndex |> map swap
     forwards = heightsWithIndex |> visibleIndices
     backwards = heightsWithIndex |> reverse |> visibleIndices
   in
@@ -89,7 +89,7 @@ visibleInRow heights =
 
 visibleInRows : TreeGrid rows columns -> SortedSet (Point rows columns)
 visibleInRows grid = 
-    grid |> map visibleInRow |> zipWithIndex |> map broadcastPair |> unionAll
+    grid |> map visibleInRow |> zipWithIndex |> map swap |> map broadcastPair |> unionAll
   where
     broadcastPair : (Ord a, Ord b) => (a, SortedSet b) -> SortedSet (a, b)
     broadcastPair (a, bs) = map (a,) bs
