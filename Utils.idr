@@ -130,6 +130,10 @@ slidingWindows (S n) (x :: xs) {prf = SIsNonZero} =
     if length window == S n then window :: slidingWindows (S n) xs else []
 
 public export
+dropRight : (n : Nat) -> List a -> List a
+dropRight n = reverse . drop n . reverse
+
+public export
 zipWithIndex : List a -> List (a, Nat)
 zipWithIndex = zipWithIndex' 0
   where

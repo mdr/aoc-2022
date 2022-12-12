@@ -16,8 +16,6 @@ import Utils
 
 -- Part 1
 
-data Instruction = Noop | Addx Integer
-
 example = """
 noop
 addx 3
@@ -173,6 +171,8 @@ noop
 noop
 """
 
+data Instruction = Noop | Addx Integer
+
 parseInstruction : String -> Maybe Instruction
 parseInstruction "noop" = Just Noop
 parseInstruction s =
@@ -232,9 +232,6 @@ drawPixel register position = if abs (register - cast position) <= 1 then '#' el
 
 drawPixels : List (Integer, Nat) -> String
 drawPixels pairs = map (uncurry drawPixel) pairs |> pack
-
-dropRight : (n : Nat) -> List a -> List a
-dropRight n = reverse . drop n . reverse
 
 partial
 solve2' : List Instruction -> List String
