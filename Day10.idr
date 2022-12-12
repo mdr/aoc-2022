@@ -183,16 +183,16 @@ parseInstruction s =
     n <- parseInteger s2
     Just (Addx n)
 
+parseInstructions : String -> Maybe (List Instruction)
+parseInstructions = lines .> traverse parseInstruction
+    
 State : Type
 State = Integer
 
 initialState : State
 initialState = 1
 
-parseInstructions : String -> Maybe (List Instruction)
-parseInstructions = lines .> traverse parseInstruction
-
-traceInstruction : Instruction -> (initialState : State) -> List1 State
+traceInstruction : Instruction -> State -> List1 State
 traceInstruction Noop s = singleton s
 traceInstruction (Addx n) s = s ::: s + n :: []
 
