@@ -179,6 +179,12 @@ allFins' : (n : Nat) -> List (Fin n)
 allFins' 0 = []
 allFins' (S n) = FZ :: (map FS (allFins' n))
 
+public export
+maybeIndex : (n : Nat) -> List a -> Maybe a
+maybeIndex n xs = case (inBounds n xs) of
+  Yes prf => Just (index n xs)
+  No _ => Nothing
+
 partial
 export 
 readDay : Fin 26 -> IO (String)
