@@ -44,25 +44,26 @@ Monkey 3:
     If false: throw to monkey 1
 """
 
-MonkeyId : Type
-MonkeyId = Nat
+MonkeyId : Nat -> Type
+MonkeyId = Fin
 
 WorryLevel : Type
 WorryLevel = Integer
 
-record MonkeyDescription where
+record MonkeyDescription (n : Nat) where
   constructor MkMonkeyDescription
-  id : MonkeyId
+  id : MonkeyId n
   items : List WorryLevel
   operation : WorryLevel -> WorryLevel
   test : WorryLevel -> Bool
-  ifTrue : MonkeyId
-  ifFalse : MonkeyId
+  ifTrue : MonkeyId n
+  ifFalse : MonkeyId n
 
-parseMonkeyId : String -> Maybe MonkeyId
-parseMonkeyId s = do
+parseMonkeyId : (n : Nat) -> String -> Maybe (MonkeyId n)
+parseMonkeyId n s = do
   let [_, s2] = words s | _ => Nothing
-  s2 |> liftToString (filter isDigit) |> parsePositive
+  id <- s2 |> liftToString (filter isDigit) |> parsePositive
+  natToFin id n
 
 parseStartingItems : String -> Maybe (List WorryLevel)
 parseStartingItems s = s |> words |> drop 2 |> map (liftToString (filter isDigit)) |> traverse parseInteger
@@ -93,36 +94,38 @@ parseTest s = do
   divisor <- parseInteger s4
   pure $ \n => n `mod` divisor == 0
 
-parseIfTrue : String -> Maybe MonkeyId
-parseIfTrue s = do
+parseIfTrue : (n : Nat) -> String -> Maybe (MonkeyId n)
+parseIfTrue n s = do
   let ["If", "true:", "throw", "to", "monkey", s6] = words s | _ => Nothing
-  parsePositive s6
+  id <- parsePositive s6
+  natToFin id n
 
-parseIfFalse : String -> Maybe MonkeyId
-parseIfFalse s = do
+parseIfFalse : (n : Nat) -> String -> Maybe (MonkeyId n)
+parseIfFalse n s = do
   let ["If", "false:", "throw", "to", "monkey", s6] = words s | _ => Nothing
-  parsePositive s6
+  id <- parsePositive s6
+  natToFin id n
 
-parseMonkeyDescription : List String -> Maybe MonkeyDescription
-parseMonkeyDescription lines = do
+parseMonkeyDescription : (n : Nat) -> List String -> Maybe (MonkeyDescription n)
+parseMonkeyDescription n lines = do
   let [s1, s2, s3, s4, s5, s6] = lines | _ => Nothing
-  id <- parseMonkeyId s1
+  id <- parseMonkeyId n s1
   startingItems <- parseStartingItems s2
   operation <- parseOperation s3
   test <- parseTest s4
-  ifTrue <- parseIfTrue s5
-  ifFalse <- parseIfFalse s6
+  ifTrue <- parseIfTrue n s5
+  ifFalse <- parseIfFalse n s6
   pure $ MkMonkeyDescription id startingItems operation test ifTrue ifFalse
 
-parseMonkeyDescriptions : String -> Maybe (List MonkeyDescription)
-parseMonkeyDescriptions = getLineGroups .> traverse parseMonkeyDescription
+parseMonkeyDescriptions : String -> Maybe (n ** Vect n (MonkeyDescription m))
+--parseMonkeyDescriptions = getLineGroups .> traverse parseMonkeyDescription
 
 -- Part 1
 
-solve' : List MonkeyDescription -> Nat
+-- solve' : List MonkeyDescription -> Nat
 
 solve : String -> Maybe Nat
-solve = map solve' . parseMonkeyDescriptions
+-- solve = map solve' . parseMonkeyDescriptions
 
 -- Part 2
 
