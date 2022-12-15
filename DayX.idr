@@ -3,6 +3,7 @@ module DayX
 import Data.List
 import Data.List1
 import Data.Nat
+import Data.SortedMap
 import Data.SortedSet
 import Data.String
 import Data.Vect

@@ -124,22 +124,22 @@ data RTList : Rel a -> Rel a where
           -> r x y -> RTList r y z
           -> RTList r x z
 
-rtrans : Reflexive a r => Transitive a r => {x, y : a} -> RTList r x y -> r x y
-rtrans Nil = reflexive
-rtrans (a :: b) = a `transitive` rtrans b
+chainTransitivity : Reflexive a r => Transitive a r => {x, y : a} -> RTList r x y -> r x y
+chainTransitivity Nil = reflexive
+chainTransitivity (a :: b) = a `transitive` chainTransitivity b
       
 expDistributesOverMultiply : (m, n, p : Nat) -> (m * n) ^ p = (m ^ p) * (n ^ p)
 expDistributesOverMultiply m n Z = Refl
 expDistributesOverMultiply m n (S p') =
   rewrite expDistributesOverMultiply m n p' in
     let
-      eq1 = the ((m * n) * (m ^ p' * n ^ p') = m * (n * (m ^ p' * n ^ p'))) $ multiplyIsAssociative _ _ _
-      eq2 = the (_ =                           m * ((n * m ^ p') * n ^ p')) $ rewrite multiplyIsAssociative n (m ^ p') (n ^ p') in Refl
+      eq1 = the ((m * n) * (m ^ p' * n ^ p') = m * (n * (m ^ p' * n ^ p'))) $ rewrite multiplyIsAssociative m n (m ^ p' * n ^ p') in Refl
+      eq2 = the (m * (n * (m ^ p' * n ^ p')) = m * ((n * m ^ p') * n ^ p')) $ rewrite multiplyIsAssociative n (m ^ p') (n ^ p') in Refl
       eq3 = the (m * ((n * m ^ p') * n ^ p') = m * ((m ^ p' * n) * n ^ p')) $ rewrite multiplyIsCommutative n (m ^ p') in Refl
       eq4 = the (m * ((m ^ p' * n) * n ^ p') = m * (m ^ p' * (n * n ^ p'))) $ rewrite multiplyIsAssociative (m ^ p') n (n ^ p') in Refl
       eq5 = the (m * (m ^ p' * (n * n ^ p')) = (m * m ^ p') * (n * n ^ p')) $ rewrite multiplyIsAssociative m (m ^ p') (n * n ^ p') in Refl
     in 
-            the ((m * n) * (m ^ p' * n ^ p') = (m * m ^ p') * (n * n ^ p')) $ rtrans [eq1, eq2, eq3, eq4, eq5]
+            the ((m * n) * (m ^ p' * n ^ p') = (m * m ^ p') * (n * n ^ p')) $ chainTransitivity [eq1, eq2, eq3, eq4, eq5]
 
 exp1Is1 : (p : Nat) -> 1 ^ p = 1
 exp1Is1 Z = Refl

@@ -134,6 +134,10 @@ dropRight : (n : Nat) -> List a -> List a
 dropRight n = reverse . drop n . reverse
 
 public export
+liftToString : (List Char -> List Char) -> String -> String
+liftToString f = unpack .> f .> pack
+
+public export
 zipWithIndex : List a -> List (a, Nat)
 zipWithIndex = zipWithIndex' 0
   where
