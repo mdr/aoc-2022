@@ -134,6 +134,11 @@ dropRight : (n : Nat) -> List a -> List a
 dropRight n = reverse . drop n . reverse
 
 public export
+replicateM_ : (Applicative m) => Nat -> m a -> m ()
+replicateM_ 0 _ = pure ()
+replicateM_ (S n) f = f *> replicateM_ n f
+
+public export
 liftToString : (List Char -> List Char) -> String -> String
 liftToString f = unpack .> f .> pack
 

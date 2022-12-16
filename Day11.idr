@@ -163,14 +163,7 @@ performTurn monkeyId = do
   modify (updateAt monkey.id { items := [] })
 
 performRound : MonkeyState n ()
-performRound = do
-  monkeys <- get
-  let monkeyIds = map (.id) monkeys
-  traverse_ performTurn monkeyIds
-
-replicateM_ : (Applicative m) => Nat -> m a -> m ()
-replicateM_ 0 _ = pure ()
-replicateM_ (S n) f = f *> replicateM_ n f
+performRound = gets (map (.id)) >>= traverse_ performTurn
 
 showState : Monkeys n -> String
 showState = map (.items) .> show
@@ -187,7 +180,7 @@ solve' initialState =
 solve : String -> Maybe Integer
 solve s = do
   (n ** state) <- parseMonkeys s
-  pure $ solve' state
+  Just $ solve' state
 
 -- Part 2
 
@@ -208,6 +201,6 @@ main : IO ()
 main = do
   contents <- readDay 11
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
-  putStrLn ("Part 1: \{show answer1}")
+  putStrLn ("Part 1: \{show answer1}") -- 110220
   -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
   -- putStrLn ("Part 2: \{show answer2}")
