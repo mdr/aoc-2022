@@ -8,6 +8,7 @@ import Data.SortedMap
 import Data.SortedSet
 import Data.String
 import Data.Vect
+import Debug.Trace
 import System
 import System.File
 import Utils
@@ -51,14 +52,15 @@ MonkeyId = Fin
 WorryLevel : Type
 WorryLevel = Integer
 
-record MonkeyDescription (n : Nat) where
-  constructor MkMonkeyDescription
+record Monkey (n : Nat) where
+  constructor MkMonkey
   id : MonkeyId n
   items : List WorryLevel
   operation : WorryLevel -> WorryLevel
   test : WorryLevel -> Bool
   ifTrue : MonkeyId n
   ifFalse : MonkeyId n
+  inspectCount : Integer
 
 -- Parsing
 
@@ -109,8 +111,8 @@ parseIfFalse n s = do
   id <- parsePositive s6
   natToFin id n
 
-parseMonkeyDescription : (n : Nat) -> List String -> Maybe (MonkeyDescription n)
-parseMonkeyDescription n lines = do
+parseMonkey : (n : Nat) -> List String -> Maybe (Monkey n)
+parseMonkey n lines = do
   let [s1, s2, s3, s4, s5, s6] = lines | _ => Nothing
   id <- parseMonkeyId n s1
   startingItems <- parseStartingItems s2
@@ -118,26 +120,26 @@ parseMonkeyDescription n lines = do
   test <- parseTest s4
   ifTrue <- parseIfTrue n s5
   ifFalse <- parseIfFalse n s6
-  pure $ MkMonkeyDescription id startingItems operation test ifTrue ifFalse
+  pure $ MkMonkey id startingItems operation test ifTrue ifFalse 0
 
-parseMonkeyDescriptions : String -> Maybe (n ** Vect n (MonkeyDescription n))
-parseMonkeyDescriptions s = do
+parseMonkeys : String -> Maybe (n ** Vect n (Monkey n))
+parseMonkeys s = do
   let (n ** lineGroups) = s |> getLineGroups |> listToVect
-  monkeyDescriptions <- traverse (parseMonkeyDescription n) lineGroups
+  monkeyDescriptions <- traverse (parseMonkey n) lineGroups
   Just (n ** monkeyDescriptions)
 
 -- Part 1
 
-MonkeyState : Nat -> Type
-MonkeyState n = Vect n (MonkeyDescription n)
+Monkeys : Nat -> Type
+Monkeys n = Vect n (Monkey n)
 
-giveItemToMonkey : WorryLevel -> MonkeyDescription n -> MonkeyDescription n
-giveItemToMonkey item = { items $= (++ [item]) }
+MonkeyState : Nat -> Type -> Type
+MonkeyState n a = State (Monkeys n) a
 
-giveItemToMonkey2 : WorryLevel -> MonkeyId n -> MonkeyState n -> MonkeyState n
-giveItemToMonkey2 item monkeyId = updateAt monkeyId (giveItemToMonkey item)
+throwItemToMonkey : WorryLevel -> MonkeyId n -> MonkeyState n ()
+throwItemToMonkey item monkeyId = modify (updateAt monkeyId { items $= (++ [item]) })
 
-handleItem : MonkeyDescription n -> WorryLevel -> (WorryLevel, MonkeyId n)
+handleItem : Monkey n -> WorryLevel -> (WorryLevel, MonkeyId n)
 handleItem monkey worryLevel = 
   let 
     newWorryLevel = monkey.operation worryLevel `div` 3
@@ -145,54 +147,47 @@ handleItem monkey worryLevel =
   in 
     (newWorryLevel, nextMonkeyId)
 
-processItems : MonkeyDescription n -> List WorryLevel -> MonkeyState n -> MonkeyState n
-processItems monkey Nil state = state
-processItems monkey (item :: items) state = 
-  let
-    (newWorryLevel, nextMonkeyId) = handleItem monkey item
-    newState = giveItemToMonkey2 newWorryLevel nextMonkeyId state
-  in
-    processItems monkey items newState
+incrementInspectCount : MonkeyId n -> MonkeyState n ()
+incrementInspectCount monkeyId = modify (updateAt monkeyId ({ inspectCount $= (+ 1) }))
 
-performTurn : MonkeyId n -> MonkeyState n -> MonkeyState n
-performTurn monkeyId state = 
-  let 
-    monkey = index monkeyId state
-    items = monkey.items
-    newState = processItems monkey items state
-  in 
-    updateAt monkeyId ({items := [] }) newState
+processItem : Monkey n -> WorryLevel -> MonkeyState n ()
+processItem monkey item = do
+  let (newWorryLevel, nextMonkeyId) = handleItem monkey item
+  incrementInspectCount monkey.id
+  throwItemToMonkey newWorryLevel nextMonkeyId
 
-performRound : MonkeyState n -> MonkeyState n
-performRound state = 
-  let 
-    monkeys = Utils.Vect.zipWithIndex state
-  in
-    foldl (\state, (monkey, monkeyId) => performTurn monkeyId state) state monkeys
+performTurn : MonkeyId n -> MonkeyState n ()
+performTurn monkeyId = do 
+  monkey <- gets (index monkeyId)
+  traverse_ (processItem monkey) monkey.items
+  modify (updateAt monkey.id { items := [] })
 
-traceN : (a -> a) -> Nat -> a -> List a
-traceN f 0 x = [x]
-traceN f (S n) x = x :: traceN f n (f x)
+performRound : MonkeyState n ()
+performRound = do
+  monkeys <- get
+  let monkeyIds = map (.id) monkeys
+  traverse_ performTurn monkeyIds
 
-showState : MonkeyState n -> String
+replicateM_ : (Applicative m) => Nat -> m a -> m ()
+replicateM_ 0 _ = pure ()
+replicateM_ (S n) f = f *> replicateM_ n f
+
+showState : Monkeys n -> String
 showState = map (.items) .> show
 
-run20 : MonkeyState n -> List (MonkeyState n)
-run20 = traceN performRound 20 
+solve' : Vect n (Monkey n) -> Integer
+solve' initialState =
+  let 
+    (finalState, _) = runState initialState (replicateM_ 20 performRound)
+    counts = finalState |> map (.inspectCount)
+    monkeyBusiness = counts |> toList |> sort |> reverse |> take 2 |> product
+  in
+    monkeyBusiness
 
-countInspections : MonkeyState n -> Vect n Nat
-countInspections = map (.items .> length)
-
-doThing : String -> Maybe (List Nat)
-doThing s = do
-  (n ** state) <- parseMonkeyDescriptions s
-  let states = traceN performRound 20 state
-  map countInspections states |> map toList |> transpose |> map sum |> pure
-
-solve' : Vect n (MonkeyDescription n) -> Nat
-
-solve : String -> Maybe Nat
--- solve = map solve' . parseMonkeyDescriptions
+solve : String -> Maybe Integer
+solve s = do
+  (n ** state) <- parseMonkeys s
+  pure $ solve' state
 
 -- Part 2
 
@@ -214,5 +209,5 @@ main = do
   contents <- readDay 11
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}")
-  let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  putStrLn ("Part 2: \{show answer2}")
+  -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
+  -- putStrLn ("Part 2: \{show answer2}")
