@@ -16,6 +16,9 @@ import Utils
 %default total
 %prefix_record_projections off
 
+numberOfRounds : Nat
+numberOfRounds = 130 -- 10000
+
 example = """
 Monkey 0:
   Starting items: 79, 98
@@ -142,7 +145,7 @@ throwItemToMonkey item monkeyId = modify (updateAt monkeyId { items $= (++ [item
 handleItem : Monkey n -> WorryLevel -> (WorryLevel, MonkeyId n)
 handleItem monkey worryLevel = 
   let 
-    newWorryLevel = monkey.operation worryLevel `div` 3
+    newWorryLevel = monkey.operation worryLevel -- `div` 3
     nextMonkeyId = if monkey.test newWorryLevel then monkey.ifTrue else monkey.ifFalse
   in 
     (newWorryLevel, nextMonkeyId)
@@ -170,8 +173,8 @@ showState = map (.items) .> show
 
 solve' : Vect n (Monkey n) -> Integer
 solve' initialState =
-  let 
-    (finalState, _) = runState initialState (replicateM_ 20 performRound)
+  let
+    (finalState, _) = runState initialState (replicateM_ numberOfRounds performRound)
     counts = finalState |> map (.inspectCount)
     monkeyBusiness = counts |> toList |> sort |> reverse |> take 2 |> product
   in
@@ -182,18 +185,6 @@ solve s = do
   (n ** state) <- parseMonkeys s
   Just $ solve' state
 
--- Part 2
-
-PuzzleInput : Type
-PuzzleInput = String
-
-parsePuzzleInput : String -> Maybe PuzzleInput
-
-solve2' : PuzzleInput -> Nat
-
-solve2 : String -> Maybe Nat
-solve2 = map solve2' . parsePuzzleInput
-
 -- Driver
 
 partial
@@ -202,5 +193,3 @@ main = do
   contents <- readDay 11
   let Just answer1 = solve contents | Nothing => die "Error solving puzzle 1"
   putStrLn ("Part 1: \{show answer1}") -- 110220
-  -- let Just answer2 = solve2 contents | Nothing => die "Error solving puzzle 2"
-  -- putStrLn ("Part 2: \{show answer2}")
